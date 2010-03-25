@@ -1,0 +1,23 @@
+:l Fin.pi
+
+Vec : Nat -> Type -> Type;
+Vec = \ m a -> split m with (lm , m') ->
+                 ! case lm of {
+		     z -> [Unit]
+		   | s -> [a * Vec (unfold m') a] };
+
+vnil : (a : Type) -> Vec zero a;
+vnil = \ a -> 'unit;
+
+vcons : (a : Type) -> (n : Nat) -> a -> Vec n a -> Vec (succ n) a;
+vcons = \ a b x xs -> (x ,xs);
+
+nth : (a : Type) -> (n : Nat) -> (xs : Vec n a) -> Fin n -> a;
+nth = \ a n xs i -> split n with (ln , n') ->
+      	       	    ! case ln of {
+		        z -> case i of {}
+		      | s -> split xs with (x, xs') ->
+		             split i with (li , i') ->
+		               case li of {
+		 	         z -> [x]
+		               | s -> [nth a (unfold n') xs' i']}}

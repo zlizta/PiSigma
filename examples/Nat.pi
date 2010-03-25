@@ -1,0 +1,97 @@
+:l Bool.pi
+
+Nat : Type;
+Nat = (l : { z s }) * case l of {
+                           z -> Unit
+			 | s -> Rec [Nat] };
+
+zero : Nat;
+zero = ('z,'unit);
+
+succ : Nat -> Nat;
+succ = \ n -> ('s,fold n);
+
+one : Nat;
+one = succ zero;
+
+two : Nat;
+two = succ one;
+
+add : Nat -> Nat -> Nat;
+add = \ m n -> split m with (lm , m') ->
+                 ! case lm of {
+		     z -> [n]
+ 		   | s -> [succ (add (unfold m') n)] };
+
+
+eqbNat : Nat -> Nat -> Bool;
+eqbNat = \ m n -> split m with (lm , m') ->
+                  split n with (ln , n') ->
+                  ! case lm of {
+		     z -> case ln of {
+		             z -> ['true]
+			   | s -> ['false] }
+	           | s -> case ln of {
+		             z -> ['false]
+			   | s -> [eqbNat (unfold m') (unfold n')] } };
+
+eqNat : Nat -> Nat -> Type;
+eqNat = \ m n -> T (eqbNat m n);
+
+reflNat : (n:Nat) -> eqNat n n;
+reflNat = \ n -> split n with (ln , n') ->
+       	        ! case ln of {
+		     z -> ['unit]
+		   | s -> [reflNat (unfold n')] };
+
+substNat : (P : Nat -> Type)
+      -> (m : Nat) -> (n : Nat)
+      -> (eqNat m n)
+      -> P m -> P n;
+substNat = \ P m n q x ->
+              split m with (lm , m') ->
+              split n with (ln , n') ->
+                 ! case lm of {
+		     z -> case ln of {
+		             z -> case m' of {
+			             unit -> case n' of {
+				                unit -> [x]}}
+			   | s -> case q of {}}
+	           | s -> case ln of {
+		             z -> case q of {}
+			   | s -> [unfold m' as m' ->
+                                   unfold n' as n' ->
+                                   substNat (\ i -> P (succ i)) m' n' q x]}};
+
+
+symNat : (m:Nat) -> (n:Nat) -> eqNat m n -> eqNat n m;
+symNat = \ m n p -> substNat (\ i -> eqNat i m) m n p (reflNat m);
+
+transNat : (i:Nat) -> (j:Nat) -> (k:Nat) ->
+      eqNat i j -> eqNat j k -> eqNat i k;
+transNat = \ i j k p q -> substNat (\ x -> eqNat i x) j k q p;
+
+addCom0 : (n:Nat) -> eqNat n (add n zero);
+addCom0 = \ n -> split n with (ln , n') ->
+	         ! case ln of {
+		      z -> case n' of {
+		              unit -> [reflNat zero]}
+	            | s -> [addCom0 (unfold n')] };
+
+addComS : (m:Nat) -> (n:Nat) ->
+	  (eqNat  (add (succ m) n) (add m (succ n)));
+addComS = \ m n -> split m with (lm , m') ->
+	           ! case lm of {
+		       z -> [reflNat (succ n)]
+		     | s -> [addComS (unfold m') n] };
+
+addCom : (m:Nat) -> (n:Nat) ->
+	  (eqNat (add m n) (add n m));
+addCom = \ m n ->  split m with (lm , m') ->
+	           ! case lm of {
+		       z ->  case m' of {
+		                unit -> [addCom0 n] }
+		     | s -> [unfold m' as m' ->
+                             transNat (add (succ m') n) (add (succ n) m') (add n (succ m'))
+		                      (addCom m' n) (addComS n m')] };
+

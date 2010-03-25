@@ -1,0 +1,47 @@
+:l Empty.pi
+:l Unit.pi
+
+Bool : Type;
+Bool = { true false };
+
+T : Bool -> Type;
+T = \ b -> case b of {
+             true -> Unit
+	   | false -> Empty };
+
+andb : Bool -> Bool -> Bool;
+andb = \ b c -> case b of {
+                  true -> c
+                | false -> 'false };
+
+orb : Bool -> Bool -> Bool;
+orb = \ b c -> case b of {
+                  true -> 'true
+                | false -> c };
+
+eqBool : Bool -> Bool -> Bool;
+eqBool = \ b1 b2 -> 
+   case b1 of
+    { true ->  case b2 of { true -> 'true | false -> 'false}                  
+    | false -> case b2 of { true -> 'false | false -> 'true}};                
+
+EqBool : Bool -> Bool -> Type;
+EqBool = \b1 b2 -> T(eqBool b1 b2);
+
+reflBool : (b : Bool) -> EqBool b b;
+reflBool = \ b -> case b of
+ { true -> 'unit
+   | false -> 'unit}; 
+
+substBool : (P : Bool -> Type) -> 
+	  (b1 b2 : Bool)
+	  -> (EqBool b1 b2)
+	  -> P b1 -> P b2;
+substBool = \ P b1 b2 m m1 ->
+   case b1 of
+     {true -> case b2 of
+          { true -> m1
+           | false -> case m of {}}
+     | false ->  case b2 of
+          { true ->  case m of {}
+           | false -> m1}};

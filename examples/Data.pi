@@ -1,0 +1,107 @@
+:l Maybe.pi
+:l Bool.pi
+
+data : Type;
+El : data -> Type;
+
+data = ( l : {empty maybe sigma box} ) * 
+       case l of {
+         empty -> Unit
+       | maybe -> [data]
+       | sigma -> [(a : data) * (El a -> data)]
+       | box -> [^ data] };  
+
+El = \ a -> split a with (la,a') ->
+            case la of {
+	      empty -> {}
+	    | maybe -> [Maybe (El a')]
+	    | sigma -> split a' with (b,c) ->
+	      	         [(x:El b)*(El (c x))]
+            | box -> [El (! a')] };
+
+unit : data;
+unit = ('maybe,('empty,'unit));
+
+un : El unit;
+un = ('nothing,'unit);
+
+bool : data;
+bool = ('maybe, unit);
+
+tt : El bool;
+tt = ('nothing,'unit);
+
+ff : El bool;
+ff = ('just,('nothing,'unit));
+
+nat : data;
+nat = ('sigma,(bool,\ b -> split b with (lb,b') ->
+      		      	     case lb of {
+			       nothing -> unit
+			     | just -> ('box, [nat]) }));
+      		      	     
+zero : El nat;
+zero = (tt,un);
+
+succ : El nat -> El nat;
+succ = \ n -> (ff,n);
+
+Eq : Type -> Type;
+Eq = \ A -> A -> A -> Bool;
+
+eqMaybe : (A:Type) -> Eq A -> Eq (Maybe A);
+eqMaybe = \ A eqA a b ->
+	  split a with (la,a') ->
+	  split b with (lb,b') ->
+	  case la of {
+	    nothing -> case lb of {
+	    	         nothing -> 'true 
+		       | just -> 'false }
+          | just -> case lb of {
+	    	         nothing -> 'false
+		       | just -> eqA a' b'}};
+
+
+eq : (a : data) -> Eq (El a);
+
+subst : (a : data) 
+        -> (x:El a) -> (y : El a) -> T (eq a x y)
+	-> (P : El a -> Type) -> P x -> P y;
+
+sigmab : (b : Bool) -> (T b -> Bool) -> Bool;
+sigmab = \ b c -> case b of {
+       	            true -> c 'unit
+		  | false -> 'false };
+
+eq = \ a x y -> split a with (la,a') ->
+       	        ! case la of {
+		    empty -> case x of {} 
+		  | maybe -> [eqMaybe (El a') (eq a') x y]
+  		  | sigma -> split a' with (b,c) ->
+		  	     split x with (x0,x1) ->
+			     split y with (y0,y1) ->
+			       [sigmab (eq b x0 y0)
+			   	 (\ p -> eq (c y0) 
+				            (subst b x0 y0 p (\ x -> El (c x))
+					    	    x1) y1)]
+                  | box -> [eq (! a') x y]}; 					   
+
+{-
+subst = \ a x y p P px ->
+        split a with (la,a') ->
+       	        ! case la of {
+		    empty -> case x of {} 
+		  | maybe -> split x with (lx,x') ->
+		  	     split y with (ly,y') ->  
+	                     case lx of {
+	                       nothing -> (case ly of {
+	    	                             nothing -> (case x' of {
+					     	           unit -> case y' of {
+							             unit -> [px] } })
+					   | just -> case p of {}})
+			      | just -> case ly of {
+			       	             nothing -> (case p of {})
+					   | just -> [subst a' x' y' p (\ z -> P ('just,z)) px]}}
+  		  | sigma -> [subst a x y p P px]
+                  | box -> [subst (! a') x y p P px]};       	
+-}

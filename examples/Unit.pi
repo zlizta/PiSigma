@@ -1,0 +1,2 @@
+Unit : Type;
+Unit = { unit };

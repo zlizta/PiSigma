@@ -1,0 +1,31 @@
+Eq : (a:Type) -> a -> a -> Type;
+Eq = \ a x y -> (P : a -> Type) -> P x -> P y;
+
+refl : (a:Type) -> (x:a) -> Eq a x x;
+refl = \ a x P px -> px;
+
+D : Type;
+D = { d };
+
+eqD : (x : D) -> Eq D x 'd;
+eqD = \ x -> case x of {
+      	       d -> refl D 'd };
+
+e : ^ D;
+e = ['d];
+
+force : ^D -> ^D;
+force = \ x -> [ !x ];
+{- force = \ x -> unbox x with [y] -> [y] -}
+
+forceEq : (x : ^D) -> Eq (^D) x (force x);
+{-
+forceEq = \ x -> refl (^D) x;
+
+forceEq = \ x -> unbox x with [y] -> refl ^D [y]
+-}
+
+{-
+cong : (x : D) -> (y : D) -> Eq ^D [x] [y];
+cong = \ x y 
+-}

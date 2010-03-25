@@ -1,0 +1,41 @@
+:l Nat.pi
+
+Fin : Nat -> Type;
+Fin = \ n -> split n with (ln , n') ->
+                 ! case ln of {
+		     z -> [Empty]
+		   | s -> [(l : { z s }) * case l of {
+                                             z -> Unit
+			                   | s -> Fin (unfold n')}]};
+
+fz : (n:Nat) -> Fin (succ n);
+fz = \ n -> ('z , 'unit );
+
+fs : (n:Nat) -> Fin n -> Fin (succ n);
+fs = \ n i -> ('s, i);
+
+fmax : (n:Nat) -> Fin (succ n);
+fmax = \ n -> split n with (ln , n') ->
+                 ! case ln of {
+		     z -> [fz zero]
+		   | s -> [fs n (fmax (unfold n'))] };
+
+femb : (n:Nat) -> Fin n -> Fin (succ n);
+femb = \ n i -> split n with (ln , n') ->
+                 ! case ln of {
+		     z -> case i of {}
+		   | s -> split i with (li , i') ->
+		       	     case li of {
+ 			       z -> [fz n]
+		             | s -> [fs n (femb (unfold n') i')] }};
+
+finv : (n:Nat) -> Fin n -> Fin n;
+finv = \ n i -> split n with (ln , n') ->
+                 ! case ln of {
+		     z -> case i of {}
+		   | s -> split i with (li , i') ->
+		       	     case li of {
+ 			       z -> [fmax (unfold n')]
+			     | s -> [unfold n' as n' ->
+                                     fs n' (finv n' i')] }};
+

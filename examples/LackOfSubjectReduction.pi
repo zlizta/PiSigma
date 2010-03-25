@@ -1,0 +1,17 @@
+Fst : Type * Type → Type
+    = λ tt → split tt with (t, u) → t;
+
+Fst' : Type * Type → Type
+     = λ tt → ! (split tt with (t, u) → [t]);
+
+id : (T : Type * Type) → Fst T → Fst' T
+   = λ T x → split T with (t, u) → x;
+
+Two : Type → Type * Type;
+σ   : Type;
+
+applied : Fst (Two σ) → Fst' (Two σ)
+        = id (Two σ);                         -- Type checks.
+
+inlined : Fst (Two σ) → Fst' (Two σ)
+        = λ x → split Two σ with (t, u) → x;  -- Doesn't type check.

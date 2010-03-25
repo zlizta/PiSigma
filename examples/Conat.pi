@@ -1,0 +1,85 @@
+:l Empty.pi
+:l Unit.pi
+
+Nat' : Type;
+Nat' = (l : { z s }) * case l of {
+                           z -> Unit
+			 | s -> Rec [^ Nat'] };
+
+
+zero : Nat';
+zero = ('z,'unit);
+
+succ : ^Nat' -> Nat';
+succ = \ n -> ('s,fold n);
+
+one : Nat';
+one = succ [zero];
+
+two : Nat';
+two = succ [one];
+
+omega : Nat';
+omega = succ [omega];
+
+
+add : Nat' -> Nat' -> Nat';
+add = \ m n -> split m with (lm , m') ->
+                 case lm of {
+		     z -> n
+ 		   | s -> succ [add (! (unfold m')) n] };
+
+eq : Nat' -> Nat' -> Type;
+eq = \ m n -> split m with (lm , m') ->
+              split n with (ln , n') ->
+                   case lm of {
+		     z -> case ln of {
+		             z -> Unit
+			   | s -> Empty }
+	           | s -> case ln of {
+		             z -> Empty
+			   | s -> Rec [^ (eq (! (unfold m')) (! (unfold n')))]}};
+
+
+refl : (n:Nat') -> eq n n;
+refl = \ n -> split n with (ln , n') ->
+       	          case ln of {
+		     z -> 'unit
+		   | s -> fold [refl (! (unfold n'))] };
+
+sym : (m:Nat') -> (n:Nat') -> eq m n -> eq n m;
+sym = \ m n p ->
+              split m with (lm , m') ->
+              split n with (ln , n') ->
+                   case lm of {
+		     z -> case ln of {
+		             z -> 'unit
+			   | s -> case p of {}}
+	           | s -> case ln of {
+		             z -> case p of {}
+			   | s -> fold [sym (! (unfold m')) (! (unfold n')) (! (unfold p))] }};
+
+{-
+subst : (P : Nat' -> Type)
+      -> (m : Nat') -> (n : Nat')
+      -> (eq m n)
+      -> P m -> ^ (P n);
+subst = \ P m n q x ->
+              split m with (lm , m') ->
+              split n with (ln , n') ->
+                 case lm of {
+		     z -> case ln of {
+		             z -> case m' of {
+			             unit -> case n' of {
+				                unit -> [x] }}
+			   | s -> case q of {}}
+	           | s -> case ln of {
+		             z -> case q of {}
+			   | s -> [unfold m' as m' ->
+                                   unfold n' as n' ->
+                                   subst (\ i -> P (succ [i])) (! m') (! n') (! q) x]}};
+-}
+
+{- seems we need an eliminator for boxes, e.g. unbox
+-}
+

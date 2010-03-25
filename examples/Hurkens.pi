@@ -1,0 +1,42 @@
+-- Hurkens' Paradox, a simplification of Girard's Paradox
+
+-- (translated from Agda examples)
+
+⊥ : Type;
+⊥ = (α : Type) → α;
+
+¬ : Type → Type;
+¬ = λ α → α → ⊥;
+
+P : Type → Type;
+P = λ α → α → Type;
+
+U : Type;
+U = (χ : Type) → (P (P χ) → χ) → P (P χ);
+
+τ : P (P U) → U;
+τ = λ t χ f p → t (λ x → p (f (x χ f)));
+
+σ : U → P (P U);
+σ = λ s → s U (λ t → τ t);
+
+Δ : P U;
+Δ = λ y → ¬ ((p : P U) → σ y p → p (τ (σ y)));
+
+Ω : U;
+Ω = τ (λ p → (x : U) → σ x p → p x);
+
+D : Type;
+D = (p : P U) → σ Ω p → p (τ (σ Ω));
+
+lem1 : (p : P U) → ((x : U) → σ x p → p x) → p Ω;
+lem1 = λ p H1 → H1 Ω (λ x → H1 (τ (σ x)));
+
+lem2 : ¬ D;
+lem2 = lem1 Δ (λ x H2 H3 → H3 Δ H2 (λ p → H3 (λ y → p (τ (σ y)))));
+
+lem3 : D;
+lem3 = λ p → lem1 (λ y → p (τ (σ y)));
+
+loop : ⊥;
+loop = lem2 lem3;

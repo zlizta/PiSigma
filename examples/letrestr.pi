@@ -1,0 +1,8 @@
+:l Bool.pi
+
+--x1 : Bool;
+--x1 = let x:Bool;x:Bool;x='true in x
+--x1 = let x:Bool; in x
+
+f : Bool -> Bool;
+f = λ x → let x='true in x

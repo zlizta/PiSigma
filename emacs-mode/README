@@ -1,0 +1,13 @@
+To use pisigma-mode, add the following to your ~/.emacs file:
+
+;; PiSigma mode
+(add-to-list 'load-path "PATH")
+(require 'pisigma-mode)
+
+Change the PATH string to the directory containing pisigma-mode.el and
+eri.el.  When you load *.pi files, pisigma-mode will be enabled.
+
+Currently the emacs mode only features (partial) syntax highlighting
+and indentation.  Support for improved syntax highlighting, code
+snippets, and interaction with the pisigma REPL (similar to
+haskell-mode/GHCi) is planned.

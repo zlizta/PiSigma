@@ -1,0 +1,12 @@
+Id : (A:Type) -> A -> A -> Type;
+refl : (A:Type) -> (a:A) -> Id A a a;
+
+J : (A:Type) -> (P:(a:A) -> (b:A) -> Id A a b -> Type) 
+  -> ((a:A) -> P a a (refl A a))
+  -> (a:A) -> (b:A) -> (p : Id A a b) -> P a b p;
+
+forceEq : (A:Type) -> (a:^A) -> Id (^A) a [!a];
+{-
+forceEq = \ A a -> unbox a with [x] -> refl ^A [x]
+should not typecheck!
+-}

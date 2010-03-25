@@ -1,0 +1,47 @@
+:l Maybe.pi
+
+data : Type;
+El : data -> Type;
+
+data = ( l : {empty maybe sigma box} ) * 
+       case l of {
+         empty -> Unit
+       | maybe -> [data]
+       | sigma -> [(a : data) * (El a -> data)]
+       | box -> [^ data] };  
+
+El = \ a -> split a with (la,a') ->
+            case la of {
+	      empty -> {}
+	    | maybe -> Maybe [El a']
+	    | sigma -> split a' with (b,c) ->
+	      	         [(x:El b)*(El (c x))]
+            | box -> [El (! a')] };
+
+unit : data;
+unit = ('maybe,('empty,'unit));
+
+un : El unit;
+un = ('nothing,'unit);
+
+bool : data;
+bool = ('maybe, unit);
+
+tt : El bool;
+tt = ('nothing,'unit);
+
+ff : El bool;
+ff = ('just,('nothing,'unit));
+
+nat : data;
+nat = ('sigma,(bool,\ b -> split b with (lb,b') ->
+      		      	     case lb of {
+			       nothing -> unit
+			     | just -> ('box, [nat]) }));
+      		      	     
+zero : El nat;
+zero = (tt,un);
+
+succ : El nat -> El nat;
+succ = \ n -> (ff,n);
+

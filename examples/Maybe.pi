@@ -1,0 +1,10 @@
+:l Unit.pi
+
+Maybe : Type -> Type;
+Maybe = \ A -> (l : { nothing just }) *
+               case l of {
+	          nothing -> Unit
+	        | just -> A };
+
+
+          

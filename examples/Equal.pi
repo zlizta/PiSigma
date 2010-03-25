@@ -1,0 +1,114 @@
+Eq : (a:Type) -> a -> a -> Type;
+Eq = \ a x y -> (P : a -> Type) -> P x -> P y;
+
+refl : (a:Type) -> (x:a) -> Eq a x x;
+refl = \ a x P px -> px;
+
+A : Type;
+a : A;
+
+b : A;
+b = a;
+
+t0 : Eq A a b;
+t0 = refl A a;
+
+{-
+c : A;
+t1 : Eq A a c;
+t1 = refl A a;
+-}
+
+d : ^A;
+d = [a];
+
+t2 : Eq (^A) d [a];
+t2 = refl (^A) [a];
+
+{-
+t3 : Eq (^A) [a] [b];
+t3 = refl (^A) [a];
+-}
+
+e : A;
+e = a;
+
+t4 : Eq (^A) [e] [b];
+t4 = refl (^A) [e];
+
+id : A -> A;
+id = \ x -> x;
+
+f : A;
+f = id a;
+
+t5 : Eq (^A) [f] [b];
+t5 = refl (^A) [f];
+{-
+? f = b
+? id a = a [f=b=b]
+-}
+
+t6 : Eq A (id a) a;
+t6 = refl A a;
+
+c:A;
+
+t7 : Eq (A*(^A)) (let x:A=a in (a,[x])) (a,let x:A=a in [x])
+   = refl (A*(^A)) (let x:A=a in (a,[x]));
+
+
+t8 : Eq (A*(^A)) (let x:A=a in (a,[x])) (a,let x:A=a in [x])
+   = refl (A*(^A)) (let x:A=a in (a,[x]));
+
+{-
+t8a : Eq (^A) (let x:A=a in [x]) (let x:A=c in [x])
+   = refl (^A) (let x:A=c in [x]);
+-}
+
+t9 : Eq (^(A * A)) (let x:A=a; y:A=c in [(x,y)]) (let y:A=c; x:A=a in [(x,y)])
+   = refl (^(A * A)) (let x:A=a; y:A=c in [(x,y)]);
+
+t9a : Eq (^(A * A)) (let x:A=a; y:A=c in [(x,y)]) (let y:A=c; x:A=a in [(x,y)])
+   = refl (^(A * A)) (let x:A=a; y:A=c in [(x,y)]);
+
+t10 : Eq (^A) (let x:A=a in [x]) (let x:A=a;y:A=x in [y])
+    = refl (^A) (let x:A=a in [x]);
+{- according due to the draft rules (Friday 30/10/09) should not work. -}
+
+t11 : Eq (^(^A)) [let x:A=a in [x]] [let x:A=a;y:A=x in [y]]
+    = refl (^(^A)) [let x:A=a in [x]];
+{- works, uses bet equality in contexts. -}
+
+t11a : Eq (^(^A)) [let x:A=a in [x]] [let y:A=a in [y]]
+    = refl (^(^A)) [let x:A=a in [x]];
+{- works now -}
+
+t12 : Eq (^A) (let y:A=y in [y]) (let z:A=z in [z])
+    = refl (^A)  (let y:A=y in [y]);
+
+{-
+t13 : Eq (^A) [let x:A=a in x] [a]
+    = refl (^A) [a];
+{- doesn't work and shouldn't. -}
+-}
+
+Stream : Type;
+Stream = A * Rec [∞ Stream];
+
+as' : Stream;
+as' = (a, fold [as']);
+
+repeat : (x : A) → Stream;
+repeat = λ x → (x, fold [repeat x]);
+
+-- as' is equal to its unfolding.
+
+unfolds : Eq Stream as' (a, fold [as']);
+unfolds = refl Stream as';
+
+-- repeat a is not equal to its unfolding.
+{-
+doesNotUnfold : Eq Stream (repeat a) (a, fold [repeat a]);
+doesNotUnfold = refl Stream (repeat a);
+-}

@@ -1,0 +1,20 @@
+Eq : (a:Type) -> a -> a -> Type;
+Eq = \ a x y -> (P : a -> Type) -> P x -> P y;
+
+refl : (a:Type) -> (x:a) -> Eq a x x;
+refl = \ a x P px -> px;
+
+A : Type;
+a : A;
+
+b : A;
+b = a;
+
+id : A -> A;
+id = \ x -> x;
+
+f : A;
+f = id a;
+
+t5 : Eq (^A) [f] [b];
+t5 = refl (^A) [f];

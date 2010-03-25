@@ -1,0 +1,152 @@
+:l Bool.pi
+
+{- stl.pi
+
+Encoding of the simply typed lambda calculus
+-}
+
+pair : (a:Bool) -> (b:Bool) -> ((T a) * (T b)) -> T (andb a b);
+pair = \ a b xy ->
+       split xy with (x,y) ->
+       case a of {
+         true -> y
+       | false -> case x of {}};
+
+unpair : (a:Bool) -> (b:Bool) -> T (andb a b) -> ((T a) * (T b));
+unpair = \ a b x ->
+       case a of {
+         true -> case b of {
+	            true -> ('unit,'unit)
+		  | false -> case x of {}}
+       | false -> case x of {}};
+
+Ty : Type;
+Ty = (l : {base arr}) *
+     case l of {
+       base -> Unit
+     | arr -> Rec [Ty * Ty] };
+
+base : Ty;
+base = ('base, 'unit);
+
+arr : Ty -> Ty -> Ty;
+arr = \ a b -> ('arr,fold (a,b));
+
+eqb : Ty -> Ty -> Bool;
+eqb = \ a b -> split a with (la, a') ->
+               split b with (lb, b') ->
+	       ! case la of {
+	           base -> case lb of {
+		   	     base -> ['true]
+ 			   | arr -> ['false]}
+		 | arr -> case lb of {
+		       	     base -> ['false]
+			   | arr -> unfold a' as a' ->
+                                    unfold b' as b' ->
+                                    split a' with (a0, a1) ->
+			            split b' with (b0, b1) ->
+				      [andb (eqb a0 b0) (eqb a1 b1)]}};
+
+eq : Ty -> Ty -> Type;
+eq = \ a b -> T (eqb a b);
+
+refl : (a:Ty) -> eq a a;
+refl = \ a -> split a with (la, a') ->
+              ! case la of {
+	           base -> ['unit]
+		 | arr -> unfold a' as a' ->
+                          split a' with (b,c) ->
+		       	    [pair (eqb b b) (eqb c c) ((refl b) , (refl c))] };
+
+subst : (P : Ty -> Type)
+      -> (a : Ty) -> (b : Ty)
+      -> (eq a b)
+      -> P a -> P b;
+subst = \ P a b p x ->
+      	       split a with (la, a') ->
+               split b with (lb, b') ->
+	       ! case la of {
+	           base -> case lb of {
+		   	      base -> case a' of {
+			                 unit -> case b' of {
+					            unit -> [x]}}
+			    | arr -> case p of {}}
+                 | arr -> case lb of {
+		       	     base -> case p of {}
+			   | arr -> unfold a' as a' ->
+                                    unfold b' as b' ->
+                                    split a' with (a0 , a1) ->
+			            split b' with (b0 , b1) ->
+				    split (unpair (eqb a0 b0) (eqb a1 b1) p) with (p0, p1) ->
+				      [subst (\ z -> P (arr b0 z)) a1 b1 p1
+				             (subst (\ y -> P (arr y a1)) a0 b0 p0 x)]}};
+
+{- subst successfully uses split on a non-variable! -}
+
+Con : Type;
+Con = ( l : {empty ext} ) *
+      case l of {
+        empty -> Unit
+      | ext -> Rec [Con * Ty] };
+
+empty : Con;
+empty = ('empty,'unit);
+
+ext : Con -> Ty -> Con;
+ext = \ g a -> ('ext, fold (g,a));
+
+Var : Con -> Ty -> Type;
+Var = \ g a ->
+      split g with (lg, g') ->
+      case lg of {
+        empty -> Empty
+      | ext -> unfold g' as g' ->
+               split g' with (d, a') ->
+                  (l : {vz vs}) *
+		  ! case l of {
+		      vz -> [eq a a']
+		    | vs -> [Var d a] }};
+
+vz : (g:Con) -> (a:Ty) -> Var (ext g a) a;
+vz = \ g a -> ('vz, (refl a));
+
+vs : (g:Con) -> (a:Ty) -> (b:Ty) -> Var g a -> Var (ext g b) a;
+vs = \ g a b x -> ('vs,x);
+
+Lam : Con -> Ty -> Type;
+Lam = \ g a ->
+      (l : {var app lam}) *
+      case l of {
+         var -> Var g a
+       | app -> Rec [(b : Ty) * ((Lam g (arr b a)) * (Lam g b))]
+       | lam -> split a with (la, a') ->
+       	     	case la of {
+		  base -> Empty
+		| arr -> unfold a' as a' ->
+                         split a' with (b, c) ->
+		           Rec [Lam (ext g b) c] }};
+
+var : (g:Con) -> (a:Ty) -> Var g a -> Lam g a;
+var = \ g a x -> ('var,x);
+
+app : (g:Con) -> (a:Ty) -> (b:Ty)
+      -> Lam g (arr a b) -> Lam g a -> Lam g b;
+app = \ g a b t u -> ('app, fold (a,(t,u)));
+
+lam : (g:Con) -> (a:Ty) -> (b:Ty)
+      -> Lam (ext g a) b -> Lam g (arr a b);
+lam = \ g a b t -> ('lam, fold t);
+
+{-
+
+Ren : Con -> Con -> Type
+Subst : Con -> Con -> Type
+
+Subst Γ Δ = {A : Ty} → Var Γ A → Tm Δ A
+
+subst : (Γ Δ : Con) → ({A : Ty} → Var Γ A → Tm Δ A) → {A : Ty} → Tm Δ A → Tm Γ A
+ren: (Γ Δ : Con) → Subst Γ Δ → {A : Ty} → Tm Δ A → Tm Γ A
+
+monad laws...
+
+-}

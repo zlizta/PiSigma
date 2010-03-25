@@ -1,47 +1,28 @@
-:l Maybe.pi
+:l Nat.pi
+:l Fin.pi
+:l Bool.pi
 
-data : Type;
-El : data -> Type;
+U   :  Type;  
+El  :  U -> Type;
 
-data = ( l : {empty maybe sigma box} ) * 
-       case l of {
-         empty -> Unit
-       | maybe -> [data]
-       | sigma -> [(a : data) * (El a -> data)]
-       | box -> [^ data] };  
+U = (l : {enum sigma rec}) * 
+     case l of  { enum   -> Nat
+                | sigma  -> Rec [(a : U) * (El a ->  U)]
+                | rec    -> ^ Rec [U] };
 
-El = \ a -> split a with (la,a') ->
-            case la of {
-	      empty -> {}
-	    | maybe -> Maybe [El a']
-	    | sigma -> split a' with (b,c) ->
-	      	         [(x:El b)*(El (c x))]
-            | box -> [El (! a')] };
+El =  \ a ->  split a with (a_l,a_r) -> 
+     ! case a_l of
+       {  enum   ->  [Fin a_r]
+       |  sigma  ->  [unfold a_r as a_r' -> 
+                      split a_r' with (b,c) -> 
+                      (x : El b) * (El (c x))]
+       |  rec    ->  [unfold (! a_r) as a_r' -> 
+                     Rec [El a_r']]};
 
-unit : data;
-unit = ('maybe,('empty,'unit));
+nat : U =  ('sigma, fold (('enum, succ (succ zero)),
+           (\ i -> split i with (i_l,i_r) ->   
+                    !  case i_l of  
+		       {  z  ->  [('enum, succ zero)]
+                       |  s  ->  [('rec, [fold nat])]})));
 
-un : El unit;
-un = ('nothing,'unit);
-
-bool : data;
-bool = ('maybe, unit);
-
-tt : El bool;
-tt = ('nothing,'unit);
-
-ff : El bool;
-ff = ('just,('nothing,'unit));
-
-nat : data;
-nat = ('sigma,(bool,\ b -> split b with (lb,b') ->
-      		      	     case lb of {
-			       nothing -> unit
-			     | just -> ('box, [nat]) }));
-      		      	     
-zero : El nat;
-zero = (tt,un);
-
-succ : El nat -> El nat;
-succ = \ n -> (ff,n);
-
+eq : (a : U) -> El a -> El a -> Bool

@@ -179,7 +179,7 @@ check' (Fold _ t,g) (VRec a) =
 
 check' t a =
     do b <- infer' t
-       catchE (eq a b) $ const $ expectedButFound t a b "check"
+       catchE (eq a b) (\ s -> expectedButFound t a b (Internal.append "check: " s))
 
 inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
 inferVar l (x,g) =

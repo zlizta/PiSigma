@@ -45,9 +45,11 @@ instance Nf Id Term where
                     let (PrtInfo x shouldExpand) = prtE e i
                     case getE e i of
                       (Id _)      -> return (Var Unknown x)
-                      (Closure t) -> if shouldExpand then nf' b xs t
-                                     -- this is bad, we should not
-                                     -- expand inside a box!
+                      (Closure t) -> if shouldExpand then 
+                                         do t' <- nf' b xs t
+                                            return (Let Unknown 
+                                                [Defn Unknown x t'] (Var Unknown x))
+                                        -- the let cannot be expanded if inside a box!
                                      else return (Var Unknown x)
 
 qq :: Env e => Vars -> Clos Term -> Eval e Term

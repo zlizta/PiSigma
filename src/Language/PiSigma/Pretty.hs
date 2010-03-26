@@ -78,8 +78,10 @@ prettyTerm _ (Var _ x)                   =
       text $ Seq x
 
 prettyTerm _ (Let _ p t)                 =
-      list (map prettyEntry p)
-  <>  prettyTerm 0 t
+      text "let"              
+  <+> sep (map prettyEntry p)
+  <+> text "in"
+  <+> prettyTerm 0 t
 
 prettyTerm _ (Type _)                    =
       text "Type"
@@ -181,14 +183,14 @@ prettyEntry (Defn _ n t)                 =
       hang 2
    $  text (Seq n)
   <+> text "="
-  <$> prettyTerm 0 t
+  <>  prettyTerm 0 t
   <>  text ";"
 
 prettyEntry (Decl _ n t)                 =
       hang 2
    $  text (Seq n)
   <+> text ":"
-  <$> prettyTerm 0 t
+  <>  prettyTerm 0 t
   <>  text ";"
 
 

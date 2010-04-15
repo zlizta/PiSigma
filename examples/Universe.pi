@@ -25,4 +25,10 @@ nat : U =  ('sigma, fold (('enum, succ (succ zero)),
 		       {  z  ->  [('enum, succ zero)]
                        |  s  ->  [('rec, [fold nat])]})));
 
-eq : (a : U) -> El a -> El a -> Bool
+eq : (a : U) -> El a -> El a -> Bool;
+
+refl : (a : U) → (x : El a) → T (eq a x x);
+
+subst : (a : U) → (x y : El a) → T (eq a x y) 
+      → (P : El a → Type) → P x → P y;
+

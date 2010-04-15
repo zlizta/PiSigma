@@ -53,7 +53,7 @@ instance Nf Id Term where
                                      else return (Var Unknown x)
 
 qq :: Env e => Vars -> Clos Term -> Eval e Term
-qq xs (Var l x  , s) = quote xs =<< getId l x s
+qq xs (Var l x  , s) = quote xs =<< getId l x sc11
 qq _  (Let _ _ _, _) = return (Label Unknown "*quote-let-not-implemented*")
 --qq xs (Let l g t, s) = fail "quote let: not implemented!"
 {-do s' <- evalProg (g,s)

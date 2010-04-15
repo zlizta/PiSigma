@@ -59,7 +59,7 @@ expectedButFound t expected' found inferred =
       <$> "Expected type:" <+> align pExpected
       <$> parens (text . Seq $ inferred)
 
-duplicateLabels :: (GetLoc a, Print a, Env e) => a -> Eval e d
+duplicateLabels :: (GetLoc a, Printc11 a, Env e) => a -> Eval e d
 duplicateLabels t =
   throwErrorc t $ "Duplicate labels in enum type"
 
@@ -179,7 +179,7 @@ check' (Fold _ t,g) (VRec a) =
 
 check' t a =
     do b <- infer' t
-       catchE (eq a b) (\ s -> expectedButFound t a b (Internal.append "check: " s))
+       catchE (eq a b) $ \ s -> expectedButFound t a b "Check"
 
 inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
 inferVar l (x,g) =

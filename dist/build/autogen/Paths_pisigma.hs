@@ -13,7 +13,7 @@ version = Version {versionBranch = [0,1,0,3], versionTags = []}
 bindir, libdir, datadir, libexecdir :: FilePath
 
 bindir     = "/Users/txa/.cabal/bin"
-libdir     = "/Users/txa/.cabal/lib/pisigma-0.1.0.3/ghc-6.10.3"
+libdir     = "/Users/txa/.cabal/lib/pisigma-0.1.0.3/ghc-6.12.1"
 datadir    = "/Users/txa/.cabal/share/pisigma-0.1.0.3"
 libexecdir = "/Users/txa/.cabal/libexec"
 

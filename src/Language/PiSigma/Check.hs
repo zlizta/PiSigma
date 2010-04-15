@@ -180,6 +180,8 @@ check' (Fold _ t,g) (VRec a) =
 check' t a =
     do b <- infer' t
        catchE (eq a b) $ \ s -> expectedButFound t a b "Check"
+-- line below leads to a runtime error 
+--       catchE (eq a b) $ \ s -> expectedButFound t a b (Internal.append "Check" s)
 
 inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
 inferVar l (x,g) =

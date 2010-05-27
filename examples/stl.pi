@@ -118,7 +118,7 @@ Lam = \ g a ->
       (l : {var app lam}) *
       case l of {
          var -> Var g a
-       | app -> Rec [(b : Ty) * ((Lam g (arr b a)) * (Lam g b))]
+       | app -> Rec [(b : Ty) * (Lam g (arr b a) * Lam g b)]
        | lam -> split a with (la, a') ->
        	     	case la of {
 		  base -> Empty

@@ -79,13 +79,13 @@ eqStream : (a : Type) -> (a -> a -> Type) -> Stream a -> Stream a -> Type;
 eqStream = \ a eq xs ys ->
   split xs with (x , xs') ->
   split ys with (y , ys') ->
-    (eq x y) * Rec [^ (eqStream a eq (! (unfold xs')) (! (unfold ys')))];
+    eq x y * Rec [^ (eqStream a eq (! (unfold xs')) (! (unfold ys')))];
 
 reflStream :  (a : Type) -> (eq : a -> a -> Type)
 	   -> ((x : a) -> eq x x)
 	   -> (xs : Stream a) -> eqStream a eq xs xs;
 reflStream = \ a eq refl xs -> split xs with (x , xs') ->
-	       	    	         ((refl x), fold [reflStream a eq refl (! (unfold xs'))]);
+	       	    	         (refl x, fold [reflStream a eq refl (! (unfold xs'))]);
 
 lemma : (n : Nat) -> eqStream Nat eqNat (from (succ n))
                                         (map Nat Nat succ (from n));

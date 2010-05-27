@@ -1,3 +1,75 @@
+{-
+
+The following grammar is (supposed to be) implemented below:
+
+variable ∷= …
+
+label ∷= …
+
+arrow ∷= "→" | "->"
+
+lambda ∷= "λ" | "\\"
+
+branch ∷= label arrow term
+
+branch⋆
+ ∷= branch "|" branch⋆
+  |
+
+label⋆
+ ∷= label label⋆
+  |
+
+variable⁺
+ ∷= variable variable⁺
+  | variable
+
+prefix-operator
+ ∷= "Rec" | "fold" | "unfold" | "^" | "∞" | "!" | "♭" | "♯"
+
+infix-operator ∷= arrow | "*"
+
+entry
+ ∷= variable ":" term ( | "=" term)
+  | variable "=" term
+
+entry⁺
+ ∷= entry ";" entry⁺
+  | entry
+
+program
+ ∷= entry⁺ ";"
+  | entry⁺
+  |
+
+atom
+ ∷= "(" term ")"
+  | variable
+  | "Type"
+  | "(" term "," term ")"
+  | "{" label⋆ "}"
+  | "′" label
+  | "case" term "of" "{" branch⋆ "}"
+  | "[" term "]"
+
+atom⁺
+ ∷= atom
+  | atom⁺ atom
+
+atom-or-unary-application
+ ∷= atom⁺
+  | prefix-operator atom-or-unary-application
+
+term
+  ∷= atom-or-unary-application ( | infix-operator term)
+   | "let" program "in" term
+   | "(" variable⁺ ":" term ")" infix-operator term
+   | lambda variable⁺ arrow term
+   | "split" term "with" "(" variable "," variable ")" arrow term
+   | "unfold" term "as" variable arrow term
+
+-}
+
 module Language.PiSigma.Parser
   ( parse
   , sPhrase
@@ -41,75 +113,72 @@ sName   = Internal.fromString <$> identifier
 
 -- * Terms
 
-sTerm5 :: Parser Term
-sTerm5 = choice
-  [ Type  <$> locReserved "Type"
+prefixOperator :: Parser (Term -> Term)
+prefixOperator = choice
+  [ Rec    <$> locReserved "Rec"
+  , Fold   <$> locReserved "fold"
+  , Lift   <$> tokLift
+  , Force  <$> tokForce
+  , Box    <$> locReservedOp "♯"
+  , unfold <$> locReserved "unfold"
+  ]
+  where
+  unfold l t = Unfold l t id
+  id         = ( Internal.fromString " x"
+               , Var Unknown (Internal.fromString " x")
+               )
+
+infixOperator :: Parser (Term -> Term -> Term)
+infixOperator = choice
+  [ (->-) <$ tokArr
+  , (-*-) <$ locReservedOp "*"
+  ]
+
+atom :: Parser Term
+atom = choice
+  [ try $ parens sTerm
+
+  , Type  <$> locReserved "Type"
+
+  , pair  <$>     location
+              <*> parens ((,) <$> sTerm <* comma <*> sTerm)
+          <?> "pair"
 
   , Enum  <$>     location
               <*> braces (many sName)
           <?> "enumeration"
+
+  , Label <$>     location
+              <*> sLabel
+          <?> "label"
 
   , Case  <$>     locReserved "case"
               <*> sTerm
               <*  reserved    "of"
               <*> braces (sBranch `sepBy` locReservedOp "|")
 
-  , Label <$>     location
-              <*> sLabel
-          <?> "label"
-
   , Box   <$>     location
-              <*> boxed sTerm
+              <*> brackets sTerm
           <?> "box"
 
-  , Lift  <$>     tokLift
-              <*> sTerm5
-          <?> "'^'"
-
-  , Rec   <$> locReserved "Rec"
-          <*> sTerm
-
-  , Fold  <$> locReserved "fold"
-          <*> sTerm
-
   , Var   <$> location <*> sName
-  , parens sTerm
   ]
-  where
-    boxed p = choice [ brackets          p
-                     , reservedOp "♯" *> p
-                     ]
+  where pair = uncurry . Pair
 
-sTerm4 :: Parser Term
-sTerm4 = choice
-  [ try $ (uncurry . Pair) <$> location
-                           <*> parens ((,) <$> sTerm <* comma <*> sTerm)
-  , sTerm5
+atomOrUnaryApplication :: Parser Term
+atomOrUnaryApplication = choice
+  [ atom `chainl1` return App
+  , prefixOperator <*> atomOrUnaryApplication
   ]
-
-sTerm3 :: Parser Term
-sTerm3 = choice
-  [ try (parens (sigmas <$> many1 ((,) <$> location <*> sName) <* reservedOp ":" <*> sTerm) <* reservedOp "*") <*> sTerm2
-  ,        Force <$> tokForce <*> sTerm4
-  , foldl1 App   <$> many1 sTerm4
-  ]
-
-sTerm2 :: Parser Term
-sTerm2 = foldr1 (-*-) <$> sTerm3 `sepBy1` reservedOp "*"
-
--- TODO: make more beautiful or renumber
-sTerm1b :: Parser Term
-sTerm1b = choice
-  [ try (parens (pis <$> many1 ((,) <$> location <*> sName) <* reservedOp ":" <*> sTerm) <* tokArr) <*> sTerm
-  , sTerm2
-  ]
-
-sTerm1 :: Parser Term
-sTerm1 = foldr1 (->-) <$> sTerm1b `sepBy1` tokArr
 
 sTerm :: Parser Term
 sTerm = choice
-  [ lam   <$  tokLam
+  [ Let   <$> locReserved "let"
+          <*> sProg
+          <*     reserved "in"
+          <*> sTerm
+
+  , lam   <$  tokLam
           <*> many1 ((,) <$> location <*> sName)
           <*  tokArr
           <*> sTerm
@@ -123,20 +192,25 @@ sTerm = choice
           <*  tokArr
           <*> sTerm
 
-  , Unfold <$> locReserved "unfold"
-           <*> sTerm
-           <*> option
-                 (Internal.fromString " x", Var Unknown (Internal.fromString " x"))
-                 (reserved "as"
-                  *> ((,) <$> sName
-                          <*  tokArr
-                          <*> sTerm))
+  , try (Unfold <$> locReserved "unfold"
+                <*> sTerm
+                <*  reserved "as")
+                <*> ((,) <$> sName
+                         <*  tokArr
+                         <*> sTerm)
 
-  , Let   <$> locReserved "let"
-          <*> sProg
-          <*     reserved "in"
-          <*> sTerm
-  , sTerm1
+  , try (do (ns, t) <- parens $
+              (,) <$> many1 ((,) <$> location <*> sName)
+                  <*  reservedOp ":"
+                  <*> sTerm
+            op <- choice [ pis    <$ tokArr
+                         , sigmas <$ reservedOp "*"
+                         ]
+            return $ op ns t) <*> sTerm
+
+  , (\a -> maybe a ($ a)) <$>
+      atomOrUnaryApplication <*>
+      optionMaybe (flip <$> infixOperator <*> sTerm)
   ]
 
 sProg :: Parser Prog
@@ -169,7 +243,7 @@ sPhrase = choice
   ]
 
 s2Terms :: Parser (Term, Term)
-s2Terms = (,) <$> sTerm5 <*> sTerm5
+s2Terms = (,) <$> atom <*> atom
 
 parse :: Parser a -> SourceName -> Parser.String -> Either ParseError a
 parse p = Parsec.parse (whiteSpace *> p <* eof)

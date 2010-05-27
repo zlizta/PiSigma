@@ -4,7 +4,7 @@
 -- Curry's paradox (usually ruled out by positivity check).
 
 A : Type;
-A = (Rec [A]) → ⊥;
+A = Rec [A] → ⊥;
 
 ¬A : A → ⊥;
 ¬A = λ x → x (fold x);

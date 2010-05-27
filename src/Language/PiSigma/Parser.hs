@@ -110,7 +110,7 @@ sTerm1 = foldr1 (->-) <$> sTerm1b `sepBy1` tokArr
 sTerm :: Parser Term
 sTerm = choice
   [ lam   <$  tokLam
-          <*> many ((,) <$> location <*> sName)
+          <*> many1 ((,) <$> location <*> sName)
           <*  tokArr
           <*> sTerm
 

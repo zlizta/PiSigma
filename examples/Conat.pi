@@ -1,36 +1,36 @@
 :l Empty.pi
 :l Unit.pi
 
-Nat' : Type;
-Nat' = (l : { z s }) * case l of {
+CoNat : Type;
+CoNat = (l : { z s }) * case l of {
                            z -> Unit
-			 | s -> Rec [^ Nat'] };
+			 | s -> Rec [^ CoNat] };
 
 
-zero : Nat';
+zero : CoNat;
 zero = ('z,'unit);
 
-succ : ^Nat' -> Nat';
+succ : ^CoNat -> CoNat;
 succ = \ n -> ('s,fold n);
 
-one : Nat';
+one : CoNat;
 one = succ [zero];
 
-two : Nat';
+two : CoNat;
 two = succ [one];
 
-omega : Nat';
+omega : CoNat;
 omega = succ [omega];
 
 
-add : Nat' -> Nat' -> Nat';
+add : CoNat -> CoNat -> CoNat;
 add = \ m n -> split m with (lm , m') ->
                  case lm of {
 		     z -> n
  		   | s -> succ [add (! (unfold m')) n] };
 
-eq : Nat' -> Nat' -> Type;
-eq = \ m n -> split m with (lm , m') ->
+EqCoNat : CoNat -> CoNat -> Type;
+EqCoNat = \ m n -> split m with (lm , m') ->
               split n with (ln , n') ->
                    case lm of {
 		     z -> case ln of {
@@ -38,17 +38,17 @@ eq = \ m n -> split m with (lm , m') ->
 			   | s -> Empty }
 	           | s -> case ln of {
 		             z -> Empty
-			   | s -> Rec [^ (eq (! (unfold m')) (! (unfold n')))]}};
+			   | s -> Rec [^ (EqCoNat (! (unfold m')) (! (unfold n')))]}};
 
 
-refl : (n:Nat') -> eq n n;
-refl = \ n -> split n with (ln , n') ->
+reflCoNat : (n:CoNat) -> EqCoNat n n;
+reflCoNat = \ n -> split n with (ln , n') ->
        	          case ln of {
 		     z -> 'unit
-		   | s -> fold [refl (! (unfold n'))] };
+		   | s -> fold [reflCoNat (! (unfold n'))] };
 
-sym : (m:Nat') -> (n:Nat') -> eq m n -> eq n m;
-sym = \ m n p ->
+symCoNat : (m n:CoNat) -> EqCoNat m n -> EqCoNat n m;
+symCoNat = \ m n p ->
               split m with (lm , m') ->
               split n with (ln , n') ->
                    case lm of {
@@ -57,12 +57,16 @@ sym = \ m n p ->
 			   | s -> case p of {}}
 	           | s -> case ln of {
 		             z -> case p of {}
-			   | s -> fold [sym (! (unfold m')) (! (unfold n')) (! (unfold p))] }};
+			   | s -> fold [symCoNat (! (unfold m')) (! (unfold n')) (! (unfold p))] }};
+
+transCoNat : (l m n:CoNat) -> EqCoNat l m -> EqCoNat m n -> EqCoNat l n;
+--transCoNat = \ l m n p q ->
+	   
 
 {-
-subst : (P : Nat' -> Type)
-      -> (m : Nat') -> (n : Nat')
-      -> (eq m n)
+subst : (P : CoNat -> Type)
+      -> (m : CoNat) -> (n : CoNat)
+      -> (EqCoNat m n)
       -> P m -> ^ (P n);
 subst = \ P m n q x ->
               split m with (lm , m') ->

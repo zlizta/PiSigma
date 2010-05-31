@@ -26,16 +26,16 @@ P : Bool -> Type
              fail -> EqBool 'false b
            | empty -> EqBool 'true b
            | sat -> (Tok -> Bool) * (EqBool 'false b)
-           | alt -> (n1 n2 : Bool) * [P n1] * [P n2] * (EqBool (orb n1 n2) b)
-           | seq -> (n1 n2 : Bool) * inftyOpt [P n1] n2 * 
-                                     inftyOpt [P n2] n1 * (EqBool (andb' n1 n2) b) };
+           | alt -> (n1 n2 : Bool) * Rec [P n1] * Rec [P n2] * (EqBool (orb n1 n2) b)
+           | seq -> (n1 n2 : Bool) * inftyOpt (Rec [P n1]) n2 *
+                                     inftyOpt (Rec [P n2]) n1 * (EqBool (andb' n1 n2) b) };
 
 
 star : P 'false -> P 'true;
 plus : P 'false -> P 'false;
 
-star = \ p -> ('alt , ('true, ('false, (('empty, reflBool 'true), 
-                                       (plus p, 
+star = \ p -> ('alt , ('true, ('false, (fold ('empty, reflBool 'true),
+                                       (fold (plus p),
                                        reflBool 'false)))));
 
-plus = \ p -> ('seq, ('false, ('true, (p, ([star p], reflBool 'false)) )) );
+plus = \ p -> ('seq, ('false, ('true, (fold p, ([fold (star p)], reflBool 'false)) )) );

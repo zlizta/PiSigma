@@ -8,27 +8,22 @@ module Language.PiSigma.Check
 import Control.Arrow
   ( first )
 import Control.Monad.Error
-import qualified Data.List
-  as List
+import qualified Data.List as List
 
 import Language.PiSigma.Equality
 import Language.PiSigma.Evaluate
 import Language.PiSigma.Pretty
 import Language.PiSigma.Syntax
-import qualified Language.PiSigma.Util.String.Internal
-  as Internal
+import qualified Language.PiSigma.Util.String.Internal as Internal
 import qualified Data.Set as Set
 
---import Debug.Trace
---trace "check\n" $
+-- import Debug.Trace
+-- trace "check\n" $
 
 -- closures are the other way around
 -- should be fixed by changing closures.
 
-{-
-fog :: CTerm -> Closure
-fog (g,t) = (con2scope g,t)
--}
+-- * Error handling
 
 throwErrorc :: (Print b, GetLoc b, Env e) => b -> Pretty -> Eval e a
 throwErrorc t m =
@@ -61,11 +56,48 @@ expectedButFound t expected' found inferred =
 
 duplicateLabels :: (GetLoc a, Print a, Env e) => a -> Eval e d
 duplicateLabels t =
-  throwErrorc t $ "Duplicate labels in enum type"
+  throwErrorc t "Duplicate labels in enum type"
 
 nonLinearSplit :: (GetLoc a, Print a, Env e) => a -> Eval e d
 nonLinearSplit t =
-  throwErrorc t $ "Repeated variables in a split"
+  throwErrorc t "Repeated variables in a split"
+
+declaredButNotDefined :: Set.Set Name -> Eval e Scope
+declaredButNotDefined xs = throwError "Variables declared but not defined"
+
+declaredTwice :: Name -> Eval e Scope
+declaredTwice x = throwError "Variable declared twice in the same block."
+
+notDeclHere :: Name -> Eval e Scope
+notDeclHere x = throwError "Name not declared in the same context"
+
+-- * Checking
+
+checkProg :: Env e => Clos Prog -> Eval e Scope
+checkProg st = checkProg' Set.empty Set.empty st
+
+-- to be finished
+checkProg' :: Env e => Set.Set Name -> Set.Set Name -> Clos Prog -> Eval e Scope
+checkProg' decls defns ([],g) = return g
+--    do
+--      let declndef = decls `Set.difference` defns
+--      if not (Set.null declndef)
+--       then declaredButNotDefined declndef
+--       else return g
+checkProg' decls defns ((Decl _ x a):tel,g) =
+    do check (a,g) ty
+       (_,g') <- decl x PrtInfo{ name = x, expand = False } g (Just (a,g))
+       if x `Set.member` decls
+        then declaredTwice x
+        else checkProg' (Set.insert x decls) defns (tel,g')
+checkProg' decls defns ((Defn l x t):tel,g) =
+    do a <- inferVar l (x,g)
+       check (t,g) a
+       i <- getId l x g
+       defn' i (t,g)
+       if not (x `Set.member` decls) 
+        then notDeclHere x
+        else checkProg' decls (Set.insert x defns) (tel,g)
 
 -- | Takes a term and an (unevaluated) type. We first
 -- handle the cases that may potentially change the
@@ -183,17 +215,7 @@ check' t a =
 -- line below leads to a runtime error 
 --       catchE (eq a b) $ \ s -> expectedButFound t a b (Internal.append "Check" s)
 
-inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
-inferVar l (x,g) =
-    case lookupCon g x of
-      Just a  -> return a
-      Nothing -> throwError msg
-        where
-          msg = Internal.concat [ Internal.fromString $ locMessage l
-                                , "\nUndefined variable: "
-                                , x
-                                , "\n(inferVar)\n"
-                                ]
+-- * Inference
 
 infer :: Env e => Clos Term -> Eval e (Clos Type)
 --infer (g,t) | trace ("infer\ng ="++(show g)++"\n t="++(show t)++"\n") False = undefined
@@ -251,45 +273,18 @@ infer (Rec _ a,g) =
 
 infer gt = throwErrorc gt $ "Not inferable" <$> "(infer)"
 
-
 -- | Infers a type and evaluates it.
 infer' :: Env e => Clos Term -> Eval e Val
 infer' gt = eval =<< infer gt
 
-checkProg :: Env e => Clos Prog -> Eval e Scope
-checkProg st = checkProg' Set.empty Set.empty st
-
-declaredButNoteDefined :: Set.Set Name -> Eval e Scope
-declaredButNoteDefined xs = throwError ("Variables declared but not defined")
-
-declaredTwice :: Name -> Eval e Scope
-declaredTwice x = throwError ("Variable declared twice in the same block.")
-
-notDeclHere :: Name -> Eval e Scope
-notDeclHere x = throwError "Name not declared in the same context"
-
-
--- to be finished
-checkProg' :: Env e => Set.Set Name -> Set.Set Name -> Clos Prog -> Eval e Scope
-checkProg' decls defns ([],g) = return g
---    do
---      let declndef = decls `Set.difference` defns
---      if not (Set.null declndef)
---       then declaredButNoteDefined declndef
---       else return g
-checkProg' decls defns ((Decl _ x a):tel,g) =
-    do check (a,g) ty
-       (_,g') <- decl x PrtInfo{ name = x, expand = False } g (Just (a,g))
-       if x `Set.member` decls
-        then declaredTwice x
-        else checkProg' (Set.insert x decls) defns (tel,g')
-checkProg' decls defns ((Defn l x t):tel,g) =
-    do a <- inferVar l (x,g)
-       check (t,g) a
-       i <- getId l x g
-       defn' i (t,g)
-       if not (x `Set.member` decls) 
-        then notDeclHere x
-        else checkProg' decls (Set.insert x defns) (tel,g)
-
-
+inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
+inferVar l (x,g) =
+    case lookupCon g x of
+      Just a  -> return a
+      Nothing -> throwError msg
+        where
+          msg = Internal.concat [ Internal.fromString $ locMessage l
+                                , "\nUndefined variable: "
+                                , x
+                                , "\n(inferVar)\n"
+                                ]

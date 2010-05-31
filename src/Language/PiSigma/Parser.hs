@@ -27,8 +27,6 @@ variable⁺
 prefix-operator
  ∷= "Rec" | "fold" | "unfold" | "^" | "∞" | "!" | "♭" | "♯"
 
-infix-operator ∷= arrow | "*"
-
 entry
  ∷= variable ":" term ( | "=" term)
   | variable "=" term
@@ -41,6 +39,8 @@ program
  ∷= entry⁺ ";"
   | entry⁺
   |
+
+binder ∷= "(" variable⁺ ":" term ")"
 
 atom
  ∷= "(" term ")"
@@ -57,10 +57,14 @@ atom-or-application
   | prefix-operator atom
   | atom-or-application atom
 
+product-or-higher
+ ∷= atom-or-application ( | "*" product-or-higher)
+  | binder "*" product-or-higher
+
 term
-  ∷= atom-or-application ( | infix-operator term)
+  ∷= product-or-higher ( | arrow term)
    | "let" program "in" term
-   | "(" variable⁺ ":" term ")" infix-operator term
+   | binder arrow term
    | lambda variable⁺ arrow term
    | "split" term "with" "(" variable "," variable ")" arrow term
    | "unfold" term "as" variable arrow term
@@ -102,6 +106,12 @@ import qualified Language.PiSigma.Util.String.Internal
 import qualified Language.PiSigma.Util.String.Parser
   as Parser
 
+-- | @p `andMaybe` q@ parses a @p@ and then maybe a @q@. The result of
+-- @q@, if any, is applied to the result of @p@.
+
+andMaybe :: Parser a -> Parser (a -> a) -> Parser a
+p `andMaybe` q = (\a -> maybe a ($ a)) <$> p <*> optionMaybe q
+
 sLabel :: Parser Name
 sLabel  = Internal.fromString <$> (string "'" *> identifier)
 
@@ -125,11 +135,11 @@ prefixOperator = choice
                , Var Unknown (Internal.fromString " x")
                )
 
-infixOperator :: Parser (Term -> Term -> Term)
-infixOperator = choice
-  [ (->-) <$ tokArr
-  , (-*-) <$ locReservedOp "*"
-  ]
+productOperator :: Parser (Term -> Term -> Term)
+productOperator = (-*-) <$ locReservedOp "*"
+
+functionArrow :: Parser (Term -> Term -> Term)
+functionArrow = (->-) <$ tokArr
 
 atom :: Parser Term
 atom = choice
@@ -166,6 +176,15 @@ atomOrApplication :: Parser Term
 atomOrApplication =
   foldl App <$> (atom <|> prefixOperator <*> atom) <*> many atom
 
+productOrHigher :: Parser Term
+productOrHigher = choice
+  [ try (do (ns, t) <- binder
+            productOperator
+            return $ sigmas ns t) <*> productOrHigher
+  , atomOrApplication `andMaybe`
+      (flip <$> productOperator <*> productOrHigher)
+  ]
+
 sTerm :: Parser Term
 sTerm = choice
   [ Let   <$> locReserved "let"
@@ -194,19 +213,17 @@ sTerm = choice
                          <*  tokArr
                          <*> sTerm)
 
-  , try (do (ns, t) <- parens $
-              (,) <$> many1 ((,) <$> location <*> sName)
-                  <*  reservedOp ":"
-                  <*> sTerm
-            op <- choice [ pis    <$ tokArr
-                         , sigmas <$ reservedOp "*"
-                         ]
-            return $ op ns t) <*> sTerm
+  , try (do (ns, t) <- binder
+            tokArr
+            return $ pis ns t) <*> sTerm
 
-  , (\a -> maybe a ($ a)) <$>
-      atomOrApplication <*>
-      optionMaybe (flip <$> infixOperator <*> sTerm)
+  , productOrHigher `andMaybe` (flip <$> functionArrow <*> sTerm)
   ]
+
+binder :: Parser ([(Loc, Name)], Type)
+binder = parens $ (,) <$> many1 ((,) <$> location <*> sName)
+                      <*  reservedOp ":"
+                      <*> sTerm
 
 sProg :: Parser Prog
 sProg = concat <$> (sEntry `sepEndBy` semi)

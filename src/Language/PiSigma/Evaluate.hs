@@ -23,7 +23,6 @@ module Language.PiSigma.Evaluate
 
 import Control.Monad.Error
 import Control.Monad.State
-import Control.Monad.Reader
 import Control.Monad.Identity
 
 import Language.PiSigma.Syntax
@@ -36,14 +35,14 @@ type EvalErr = Internal.String
 
 instance Error EvalErr where
 
-newtype Eval a = Eval { unEval :: ReaderT Scope (StateT EnvEntries (ErrorT EvalErr Identity)) a }
+
+newtype Eval a = Eval { unEval :: StateT EnvEntries (ErrorT EvalErr Identity) a }
   deriving ( Monad
            , MonadError EvalErr
-           , MonadState EnvEntries
-           , MonadReader Scope)
+           , MonadState EnvEntries )
 
-run :: Scope -> EnvEntries -> Eval a -> Either EvalErr (a, EnvEntries)
-run s e (Eval p) = runIdentity $ runErrorT $ runStateT (runReaderT p s) e
+run :: EnvEntries -> Eval a -> Either EvalErr (a, EnvEntries)
+run e (Eval p) = runIdentity $ runErrorT $ runStateT p e
 
 catchE :: Eval a -> (EvalErr -> Eval a) -> Eval a
 catchE = catchError

@@ -35,6 +35,7 @@ module Language.PiSigma.Syntax
   , label
   , lam
   , locMessage
+  , decls
   , lookupCon
   , lookupScope
   , pis
@@ -107,6 +108,12 @@ instance GetLoc Entry where
   getLoc (Defn l _ _) = l
 
 type Prog = [Entry]
+
+decls :: Prog -> [Name]
+decls [] = []
+decls (Decl _ x _ : p) = x:decls p
+decls (Defn _ _ _ : p) = decls p
+
 
 {-
 Maybe better

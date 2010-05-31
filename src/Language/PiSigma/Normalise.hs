@@ -49,18 +49,16 @@ instance Nf Id Term where
                                          do t' <- nf' b xs t
                                             return (Let Unknown 
                                                 [Defn Unknown x t'] (Var Unknown x))
+                                        -- we should also declare x, but we don't know its type!
                                         -- the let cannot be expanded if inside a box!
                                      else return (Var Unknown x)
 
 qq :: Env e => Vars -> Clos Term -> Eval e Term
 qq xs (Var l x  , s) = quote xs =<< getId l x s
-qq _  (Let _ _ _, _) = return (Label Unknown "*quote-let-not-implemented*")
---qq xs (Let l g t, s) = fail "quote let: not implemented!"
-{-do s' <- evalProg (g,s)
-                        qq xs (t,s')
-                       -- this seems wrong! we should return a Let
-                       -- and we should extend xs!
--}
+--qq _  (Let _ _ _, _) = return (Label Unknown "*quote-let-not-implemented*")
+qq xs (Let l g t, s) = 
+             do s' <- evalProg (g,s)
+                qq (xs ++ decls g) (t,s')
 qq xs (Q l ps (a,(x,b)),s) =
     do a' <- qq xs (a,s)
        xb' <- quote xs (x,(b,s))

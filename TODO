@@ -1,0 +1,21 @@
+BUGS
+====
+
+REPL
+----
+
+* When loading a syntactically incorrect file (from the command-line)
+  one is left in the REPL, when loading a file with a type error one
+  is thrown out of the REPL.
+
+* When loading a syntactically incorrect file (from within the REPL)
+  the resulting "context" (the files listed in the prompt) includes
+  the given file. When a type error is encountered the given file is
+  instead excluded.
+
+Other things to do
+==================
+
+* Test suite.
+  - Should include expected successes as well as expected failures.
+  - Is the parser a left inverse of the pretty-printer?

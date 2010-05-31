@@ -12,8 +12,15 @@ author:        Thorsten Altenkirch <txa@cs.nott.ac.uk>,
                Darin Morrison <dwm@cs.nott.ac.uk>
 maintainer:    Thorsten Altenkirch <txa@cs.nott.ac.uk>,
                Andres Loeh <kspisigma@andres-loeh.de>
-description:   dependently typed core language
-synopsis:      dependently typed core language
+synopsis:      A dependently typed core language
+description:   
+  PiSigma is a small dependently typed language with only very few
+  constructs: Type:Type, Pi-types, Sigma-types, enumerations and a
+  general meachanism for mutual recursion for types and values
+  controlled by lifted types. It is intended as a core language for
+  dependently typed languages like Agda. It has been described in the
+  paper <em>PiSigma: Dependent Types Without the Sugar</em> which has
+  appeared in the proceedings of FLOPS 2010.
 category:      Development, Language, Dependent Types
 build-type:    Simple
 

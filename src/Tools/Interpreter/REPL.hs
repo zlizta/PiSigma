@@ -300,7 +300,7 @@ execProg p =
   do
     s <- get
     let (con,env) = replState s
-    case run env (checkProg (p,con)) of
+    case run con env (checkProg (p,con)) of
       Right s' -> put (s { replState = s' })
       Left e   -> do
                     liftIO $ Internal.putStrLn e
@@ -317,7 +317,7 @@ execTerm t =
           pa <- evalPrint a
           pt <- evalPrint t'
           return $ fromPretty $ pt <$> colon <+> align pa
-    case run env p of
+    case run con env p of
         Right (m,_) -> liftIO $ Internal.putStrLn m
         Left e      -> do
                          liftIO $ Internal.putStrLn e
@@ -329,7 +329,7 @@ eqTerms t1 t2 =
     s <- get
     let (con,env) = replState s
         p = eq (t1,con) (t2,con)
-    case run env p of
+    case run con env p of
         Right _ -> liftIO $ putStrLn "yes"
         Left e  -> do
                      liftIO $ Internal.putStrLn e
@@ -342,7 +342,7 @@ inferTerm t =
     s <- get
     let (con,env) = replState s
         p = evalPrint =<< infer (t,con)
-    case run env p of
+    case run con env p of
         Right (m,_) -> do
           liftIO $ putPretty m
           liftIO $ putStrLn ""

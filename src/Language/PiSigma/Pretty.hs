@@ -77,8 +77,9 @@ prettyTerm :: PrintContext -> Term -> Pretty
 prettyTerm _ (Var _ x)                   =
       text $ Seq x
 
-prettyTerm _ (Let _ p t)                 =
-      text "let"              
+prettyTerm c (Let _ p t)                 =
+      contextParens c 0
+   $  text "let"
   <+> sep (map prettyEntry p)
   <+> text "in"
   <+> prettyTerm 0 t
@@ -87,17 +88,17 @@ prettyTerm _ (Type _)                    =
       text "Type"
 
 prettyTerm c (Q _ Pi (t1, (n, t2)))      =
-      contextParens c 1
+      contextParens c 0
    $  group
-   $  binding 2 n t1
+   $  binding 1 n t1
   <$> text "->"
-  <+> prettyTerm 1 t2
+  <+> prettyTerm 0 t2
 
 prettyTerm c (Q _ Sigma (t1, (n, t2)))   =
-      contextParens c 2
-   $  binding 3 n t1
+      contextParens c 0
+   $  binding 1 n t1
   <+> text "*"
-  <+> prettyTerm 2 t2
+  <+> prettyTerm 0 t2
 
 prettyTerm c (Lam _ (n, t))              =
       contextParens c 0
@@ -109,9 +110,9 @@ prettyTerm c (Lam _ (n, t))              =
 prettyTerm c (App t1 t2)                 =
       group
    $  hang 2
-   $  contextParens c 3
-   $  prettyTerm 3 t1
-  <$> prettyTerm 4 t2
+   $  contextParens c 2
+   $  prettyTerm 2 t1
+  <$> prettyTerm 3 t2
 
 prettyTerm _ (Pair _ t1 t2)              =
       tupled $ map (prettyTerm 0) [t1, t2]
@@ -144,27 +145,27 @@ prettyTerm _ (Case _ t bs)               =
   <$> branches bs
 
 prettyTerm c (Lift _ t)                  =
-     contextParens c 5
-   $ text "^"
-  <> prettyTerm 5 t
+      contextParens c 1
+   $  text "^"
+  <+> prettyTerm 1 t
 
 prettyTerm _ (Box _ t)                   =
       brackets $ prettyTerm 0 t
 
 prettyTerm c (Force _ t)                 =
-     contextParens c 3
-   $ text "!"
-  <> prettyTerm 4 t
+      contextParens c 1
+   $  text "!"
+  <+> prettyTerm 1 t
 
 prettyTerm c (Rec _ t)                  =
-     contextParens c 5
+     contextParens c 1
    $ text "Rec"
-  <+> prettyTerm 5 t
+  <+> prettyTerm 1 t
 
 prettyTerm c (Fold _ t)                  =
-     contextParens c 5
+     contextParens c 1
    $ text "fold"
-  <+> prettyTerm 5 t
+  <+> prettyTerm 1 t
 
 prettyTerm c (Unfold _ t1 (n, t2))       =
       contextParens c 0
@@ -183,7 +184,7 @@ prettyEntry (Defn _ n t)                 =
       hang 2
    $  text (Seq n)
   <+> text "="
-  <>  prettyTerm 0 t
+  <+>  prettyTerm 0 t
   <>  text ";"
 
 prettyEntry (Decl _ n t)                 =

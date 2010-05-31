@@ -17,6 +17,7 @@ module Language.PiSigma.Syntax
   , Loc      (..)
   , Name
   , Ne       (..)
+  , Pat      (..)
   , Phrase   (..)
   , PiSigma  (..)
   , Prog
@@ -38,6 +39,7 @@ module Language.PiSigma.Syntax
   , decls
   , lookupCon
   , lookupScope
+  , pat2val
   , pis
   , prtE
   , setE
@@ -344,6 +346,17 @@ data Ne
   | NForce Ne
   | NUnfold Ne (Bind (Clos Term))
   deriving (Show, Eq)
+
+-- | Patterns
+data Pat 
+   = PLabel Label
+--   | PPair (Id,Id)
+--   | PFold Id
+-- add PBox ?
+
+pat2val :: Pat -> Val
+pat2val (PLabel l) = VLabel l
+
 
 -- ** Environments
 

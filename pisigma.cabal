@@ -19,7 +19,7 @@ description:
   general meachanism for mutual recursion for types and values
   controlled by lifted types. It is intended as a core language for
   dependently typed languages like Agda. It has been described in the
-  paper <em>PiSigma: Dependent Types Without the Sugar</em> which has
+  paper /PiSigma: Dependent Types Without the Sugar/ which has
   appeared in the proceedings of FLOPS 2010.
 category:      Development, Language, Dependent Types
 build-type:    Simple

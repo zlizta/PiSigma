@@ -29,11 +29,11 @@ fresh x xs
   | otherwise              = x
 
 class Nf a b | a -> b where
-    nf :: Env e => Vars -> a -> Eval e b
+    nf :: Vars -> a -> Eval b
     nf = nf' True
-    quote :: Env e => Vars -> a -> Eval e b
+    quote :: Vars -> a -> Eval b
     quote = nf' False
-    nf' :: Env e => Bool -> Vars -> a -> Eval e b
+    nf' :: Bool -> Vars -> a -> Eval b
 
 
 instance Nf (Clos Term) Term where
@@ -53,7 +53,7 @@ instance Nf Id Term where
                                         -- the let cannot be expanded if inside a box!
                                      else return (Var Unknown x)
 
-qq :: Env e => Vars -> Clos Term -> Eval e Term
+qq :: Vars -> Clos Term -> Eval Term
 qq xs (Var l x  , s) = quote xs =<< getId l x s
 --qq _  (Let _ _ _, _) = return (Label Unknown "*quote-let-not-implemented*")
 qq xs (Let l g t, s) = 

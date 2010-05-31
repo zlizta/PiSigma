@@ -25,7 +25,7 @@ import qualified Data.Set as Set
 
 -- * Error handling
 
-throwErrorc :: (Print b, GetLoc b, Env e) => b -> Pretty -> Eval e a
+throwErrorc :: (Print b, GetLoc b) => b -> Pretty -> Eval a
 throwErrorc t m =
   do
     pt <- evalPrint t
@@ -34,17 +34,17 @@ throwErrorc t m =
          <$> "Expression:   " <+> align pt
          <$> m
 
-expected :: (Env e) => Clos Term -> Val -> Pretty -> Eval e ()
+expected :: Clos Term -> Val -> Pretty -> Eval ()
 expected t expected' inferred = do
   pExpected <- evalPrint expected'
   throwErrorc t $ "Expected type:" <+> align pExpected <$> parens inferred
 
-expectedButFound :: (GetLoc a, Print a, Print b, Print c, Env e)
+expectedButFound :: (GetLoc a, Print a, Print b, Print c)
                  => a
                  -> b
                  -> c
                  -> Internal.String
-                 -> Eval e d
+                 -> Eval d
 expectedButFound t expected' found inferred =
   do
     pExpected <- evalPrint expected'
@@ -54,30 +54,30 @@ expectedButFound t expected' found inferred =
       <$> "Expected type:" <+> align pExpected
       <$> parens (text . Seq $ inferred)
 
-duplicateLabels :: (GetLoc a, Print a, Env e) => a -> Eval e d
+duplicateLabels :: (GetLoc a, Print a) => a -> Eval d
 duplicateLabels t =
   throwErrorc t "Duplicate labels in enum type"
 
-nonLinearSplit :: (GetLoc a, Print a, Env e) => a -> Eval e d
+nonLinearSplit :: (GetLoc a, Print a) => a -> Eval d
 nonLinearSplit t =
   throwErrorc t "Repeated variables in a split"
 
-declaredButNotDefined :: Set.Set Name -> Eval e Scope
+declaredButNotDefined :: Set.Set Name -> Eval Scope
 declaredButNotDefined xs = throwError "Variables declared but not defined"
 
-declaredTwice :: Name -> Eval e Scope
+declaredTwice :: Name -> Eval Scope
 declaredTwice x = throwError "Variable declared twice in the same block."
 
-notDeclHere :: Name -> Eval e Scope
+notDeclHere :: Name -> Eval Scope
 notDeclHere x = throwError "Name not declared in the same context"
 
 -- * Checking
 
-checkProg :: Env e => Clos Prog -> Eval e Scope
+checkProg :: Clos Prog -> Eval Scope
 checkProg st = checkProg' Set.empty Set.empty st
 
 -- to be finished
-checkProg' :: Env e => Set.Set Name -> Set.Set Name -> Clos Prog -> Eval e Scope
+checkProg' :: Set.Set Name -> Set.Set Name -> Clos Prog -> Eval Scope
 checkProg' decls defns ([],g) = return g
 --    do
 --      let declndef = decls `Set.difference` defns
@@ -103,7 +103,7 @@ checkProg' decls defns ((Defn l x t):tel,g) =
 -- handle the cases that may potentially change the
 -- environment. If none of those cases match, we can
 -- safely evaluate the type and call check'.
-check :: Env e => Clos Term -> Clos Type -> Eval e ()
+check :: Clos Term -> Clos Type -> Eval ()
 --check (g,t) c | trace ("check\ng ="++(show g)++"\n t="++(show t)++"\nc="++(show c)++"\n") False = undefined
 
 check (Let _ p t,g) c =
@@ -186,7 +186,7 @@ check (Force _ t,g) c = check (t,g) (tlift c)
 
 check t a = check' t =<< eval a
 
-check' :: Env e => Clos Term -> Val -> Eval e ()
+check' :: Clos Term -> Val -> Eval ()
 check' (Lam _ (x,t),g) (VQ Pi ((a,(y,b)),s)) =
     do (i,g') <- tdecl x g (a,s)
        let s' = extendScope s y (i,Nothing)
@@ -217,7 +217,7 @@ check' t a =
 
 -- * Inference
 
-infer :: Env e => Clos Term -> Eval e (Clos Type)
+infer :: Clos Term -> Eval (Clos Type)
 --infer (g,t) | trace ("infer\ng ="++(show g)++"\n t="++(show t)++"\n") False = undefined
 
 infer (Var l x,g) = inferVar l (x,g)
@@ -274,10 +274,10 @@ infer (Rec _ a,g) =
 infer gt = throwErrorc gt $ "Not inferable" <$> "(infer)"
 
 -- | Infers a type and evaluates it.
-infer' :: Env e => Clos Term -> Eval e Val
+infer' :: Clos Term -> Eval Val
 infer' gt = eval =<< infer gt
 
-inferVar :: Env e => Loc -> Clos Name -> Eval e (Clos Type)
+inferVar :: Loc -> Clos Name -> Eval (Clos Type)
 inferVar l (x,g) =
     case lookupCon g x of
       Just a  -> return a

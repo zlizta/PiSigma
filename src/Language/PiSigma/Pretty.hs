@@ -28,7 +28,7 @@ type Pretty = OneDim.Pretty (Seq Internal.String Char) (Tok Internal.String Char
 -- * Print class for various types
 
 class Print a where
-    evalPrint :: Env e => a -> Eval e Pretty
+    evalPrint :: a -> Eval Pretty
 
 instance Print Internal.String where
     evalPrint   = return . text . Seq

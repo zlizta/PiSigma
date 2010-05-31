@@ -11,7 +11,7 @@ import Language.PiSigma.Evaluate
 import Language.PiSigma.Syntax
 
 class Equal a where
-    eq :: Env e => a -> a -> Eval e ()
+    eq :: a -> a -> Eval ()
 
 instance Equal (Clos Term) where
     eq t u = do t' <- eval t
@@ -22,9 +22,9 @@ instance Equal (Clos Term) where
 -- eq' :: Env e => Clos (Term,Term) -> Eval e ()
 -- eq' ((t,u),s) = eq (t,s) (u,s)
 
-eqBind :: (Env e,Closure a) =>
-          (a -> a -> Eval e ()) ->
-          Bind a -> Bind a -> Eval e ()
+eqBind :: (Closure a) =>
+          (a -> a -> Eval ()) ->
+          Bind a -> Bind a -> Eval ()
 eqBind eqArg (x0,c0) (x1,c1) =
   do let s0 = getScope c0
          s1 = getScope c1
@@ -55,7 +55,7 @@ instance Equal Val where
              | otherwise = fail "Different values"
 
 {- eqBox implements alpha equality -}
-eqBox :: Env e => Clos Term -> Clos Term -> Eval e ()
+eqBox :: Clos Term -> Clos Term -> Eval ()
 --eqBox c c' | c == c' = return ()
 eqBox (Var l x,s) (Var l' y,s') =
     do x' <- getId l  x s

@@ -36,24 +36,24 @@ type EvalErr = Internal.String
 instance Error EvalErr where
 
 
-newtype Eval e a = Eval { unEval :: StateT e (ErrorT EvalErr Identity) a }
+newtype Eval a = Eval { unEval :: StateT EnvEntries (ErrorT EvalErr Identity) a }
   deriving ( Monad
            , MonadError EvalErr
-           , MonadState e )
+           , MonadState EnvEntries )
 
-run :: e -> Eval e a -> Either EvalErr (a, e)
+run :: EnvEntries -> Eval a -> Either EvalErr (a, EnvEntries)
 run e (Eval p) = runIdentity $ runErrorT $ runStateT p e
 
-catchE :: Eval e a -> (EvalErr -> Eval e a) -> Eval e a
+catchE :: Eval a -> (EvalErr -> Eval a) -> Eval a
 catchE = catchError
 
-getEnv :: Eval e e
+getEnv :: Eval EnvEntries
 getEnv = get
 
-setEnv :: e -> Eval e ()
+setEnv :: EnvEntries -> Eval ()
 setEnv = put
 
-getId :: Loc -> Name -> Scope -> Eval e Id
+getId :: Loc -> Name -> Scope -> Eval Id
 getId l x s = case lookupScope s x of
   Just i  -> return i
   Nothing -> throwError msg
@@ -66,35 +66,34 @@ getId l x s = case lookupScope s x of
 
 -- | Takes a name, a scope, and potentially a type.
 -- It extends the environment and the scope with that name.
-decl :: Env e
-     => Name
+decl :: Name
      -> PrtInfo
      -> Scope
      -> Maybe  (Clos Type)
-     -> Eval e (Id, Scope)
+     -> Eval (Id, Scope)
 decl x x' s a =
     do e <- getEnv
        let (i,e') = extE e x'
        setEnv e'
        return (i,extendScope s x (i,a))
 
-decl' :: Env e => Name -> Scope -> Eval e (Id, Scope)
+decl' :: Name -> Scope -> Eval (Id, Scope)
 decl' x s   = decl x PrtInfo{ name = x, expand = True } s Nothing
 
-tdecl :: Env e => Name -> Scope -> (Clos Type) -> Eval e (Id, Scope)
+tdecl :: Name -> Scope -> (Clos Type) -> Eval (Id, Scope)
 tdecl x g = decl x PrtInfo{ name = x, expand = True } g . Just
 
 -- | Updates the environment.
-defn :: Env e => Id -> EnvEntry -> Eval e ()
+defn :: Id -> EnvEntry -> Eval ()
 defn i ei =
     do e <- getEnv
        setEnv (setE e i ei)
 
-defn' :: Env e => Id -> Clos Type -> Eval e ()
+defn' :: Id -> Clos Type -> Eval ()
 defn' i = defn i . Closure
 
 -- | Locally updates the environment.
-letn :: Env e => Id -> EnvEntry -> Eval e a -> Eval e a
+letn :: Id -> EnvEntry -> Eval a -> Eval a
 letn i ei p =
     do eo <- lookupId i
        defn i ei
@@ -102,41 +101,40 @@ letn i ei p =
        defn i eo
        return a
 
-letn' :: Env e => Id -> Clos Type -> Eval e a -> Eval e a
+letn' :: Id -> Clos Type -> Eval a -> Eval a
 letn' i = letn i . Closure
 
-subst :: Env e => Bind (Clos Term) -> (Clos Term) -> Eval e (Clos Term)
+subst :: Bind (Clos Term) -> (Clos Term) -> Eval (Clos Term)
 subst (x,(t,s)) u =
     do (i,s') <- decl' x s
        defn' i u
        return (t,s')
 
-evalApp :: Env e => Val -> (Clos Term) -> Eval e Val
+evalApp :: Val -> (Clos Term) -> Eval Val
 evalApp (VLam xt) u = eval =<< subst xt u
 evalApp (Ne t)    u = return (Ne (t :.. u))
 evalApp _         _ = throwError "function expected"
 
-lookupId :: Env e => Id -> Eval e EnvEntry
+lookupId :: Id -> Eval EnvEntry
 lookupId i = liftM (flip getE i) getEnv
 
-evalId :: Env e => Id -> Eval e Val
+evalId :: Id -> Eval Val
 evalId i =
     do ei <- lookupId i
        case ei of
          Closure t -> eval t
          Id j      -> return (Ne (NVar j))
 
-evalSplit :: Env e
-          => Val
+evalSplit :: Val
           -> Bind (Bind (Clos Term))
-          -> Eval e Val
+          -> Eval Val
 evalSplit (VPair ((l,r),s)) (x,(y,(t,s'))) =
     do ts2 <- subst (x, (t, s')) (l, s)
        eval =<< subst (y, ts2) (r, s)
 evalSplit (Ne n) b = return (Ne (NSplit n b))
 evalSplit _ _ = throwError "Pair expected"
 
-evalCase :: Env e => Val -> Clos [(Label,Term)] -> Eval e Val
+evalCase :: Val -> Clos [(Label,Term)] -> Eval Val
 evalCase (VLabel l) (lts,s) =
     case lookup l lts of
       Nothing -> throwError "case not matched"
@@ -144,17 +142,17 @@ evalCase (VLabel l) (lts,s) =
 evalCase (Ne n) lts = return (Ne (NCase n lts))
 evalCase _ _ = throwError "Label expected"
 
-force :: Env e => Val -> Eval e Val
+force :: Val -> Eval Val
 force (VBox (Boxed c)) = eval c
 force (Ne n) = return (Ne (NForce n))
 force _ = throwError "Box expected"
 
-unfold :: Env e => Val -> Bind (Clos Term) -> Eval e Val
+unfold :: Val -> Bind (Clos Term) -> Eval Val
 unfold (VFold c) b = eval =<< subst b c
 unfold (Ne n)    b = return (Ne (NUnfold n b))
 unfold _         _ = throwError "Fold expected"
 
-eval :: Env e => (Clos Term) -> Eval e Val
+eval :: (Clos Term) -> Eval Val
 eval (Var l x, s)               = evalId =<< getId l x s
 eval (Let _ g t, s)             = curry eval t =<< evalProg (g,s)
 eval (Type _, _)                = return VType
@@ -173,7 +171,7 @@ eval (Rec _ t, s)               = return (VRec (t,s))
 eval (Fold _ t, s)              = return (VFold (t,s))
 eval (Unfold _ t (x, u), s)     = flip unfold (x, (u, s)) =<< eval (t,s)
 
-evalProg :: Env e => Clos Prog -> Eval e Scope
+evalProg :: Clos Prog -> Eval Scope
 evalProg ([],s) = return s
 evalProg ((Decl _ x _):tel, s) = do (_,s') <- decl x (PrtInfo x False) s Nothing
                                     evalProg (tel,s')

@@ -52,16 +52,13 @@ atom
   | "case" term "of" "{" branch⋆ "}"
   | "[" term "]"
 
-atom⁺
+atom-or-application
  ∷= atom
-  | atom⁺ atom
-
-atom-or-unary-application
- ∷= atom⁺
-  | prefix-operator atom-or-unary-application
+  | prefix-operator atom
+  | atom-or-application atom
 
 term
-  ∷= atom-or-unary-application ( | infix-operator term)
+  ∷= atom-or-application ( | infix-operator term)
    | "let" program "in" term
    | "(" variable⁺ ":" term ")" infix-operator term
    | lambda variable⁺ arrow term
@@ -165,11 +162,9 @@ atom = choice
   ]
   where pair = uncurry . Pair
 
-atomOrUnaryApplication :: Parser Term
-atomOrUnaryApplication = choice
-  [ atom `chainl1` return App
-  , prefixOperator <*> atomOrUnaryApplication
-  ]
+atomOrApplication :: Parser Term
+atomOrApplication =
+  foldl App <$> (atom <|> prefixOperator <*> atom) <*> many atom
 
 sTerm :: Parser Term
 sTerm = choice
@@ -209,7 +204,7 @@ sTerm = choice
             return $ op ns t) <*> sTerm
 
   , (\a -> maybe a ($ a)) <$>
-      atomOrUnaryApplication <*>
+      atomOrApplication <*>
       optionMaybe (flip <$> infixOperator <*> sTerm)
   ]
 

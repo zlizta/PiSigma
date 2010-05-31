@@ -110,9 +110,9 @@ prettyTerm c (Lam _ (n, t))              =
 prettyTerm c (App t1 t2)                 =
       group
    $  hang 2
-   $  contextParens c 2
-   $  prettyTerm 2 t1
-  <$> prettyTerm 3 t2
+   $  contextParens c 1
+   $  prettyTerm 1 t1
+  <$> prettyTerm 2 t2
 
 prettyTerm _ (Pair _ t1 t2)              =
       tupled $ map (prettyTerm 0) [t1, t2]
@@ -147,7 +147,7 @@ prettyTerm _ (Case _ t bs)               =
 prettyTerm c (Lift _ t)                  =
       contextParens c 1
    $  text "^"
-  <+> prettyTerm 1 t
+  <+> prettyTerm 2 t
 
 prettyTerm _ (Box _ t)                   =
       brackets $ prettyTerm 0 t
@@ -155,17 +155,17 @@ prettyTerm _ (Box _ t)                   =
 prettyTerm c (Force _ t)                 =
       contextParens c 1
    $  text "!"
-  <+> prettyTerm 1 t
+  <+> prettyTerm 2 t
 
 prettyTerm c (Rec _ t)                  =
      contextParens c 1
    $ text "Rec"
-  <+> prettyTerm 1 t
+  <+> prettyTerm 2 t
 
 prettyTerm c (Fold _ t)                  =
      contextParens c 1
    $ text "fold"
-  <+> prettyTerm 1 t
+  <+> prettyTerm 2 t
 
 prettyTerm c (Unfold _ t1 (n, t2))       =
       contextParens c 0

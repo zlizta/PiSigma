@@ -8,7 +8,7 @@ El  :  U -> Type;
 U = (l : {enum sigma rec}) * 
      case l of  { enum   -> Nat
                 | sigma  -> Rec [(a : U) * (El a ->  U)]
-                | rec    -> ^ Rec [U] };
+                | rec    -> ^ (Rec [U]) };
 
 El =  \ a ->  split a with (a_l,a_r) -> 
      ! case a_l of

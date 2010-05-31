@@ -167,6 +167,11 @@ prettyTerm c (Fold _ t)                  =
    $ text "fold"
   <+> prettyTerm 3 t
 
+prettyTerm c (Unfold _ (Var _ x) (n, Var _ n')) | n == n' =
+      contextParens c 2
+   $  text "unfold"
+  <+> text (Seq x)
+
 prettyTerm c (Unfold _ t1 (n, t2))       =
       contextParens c 0
    $  hang 2

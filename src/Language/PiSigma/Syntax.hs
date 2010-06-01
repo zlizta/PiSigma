@@ -18,6 +18,9 @@ module Language.PiSigma.Syntax
   , Name
   , Ne       (..)
   , Pat      (..)
+  , Constr   (..)
+  , Constrs  (..)
+  , emptyC
   , Phrase   (..)
   , PiSigma  (..)
   , Prog
@@ -353,6 +356,14 @@ data Pat
 --   | PPair (Id,Id)
 --   | PFold Id
 -- add PBox ?
+
+-- | Constraints
+data Constr = Constr Ne Pat
+
+data Constrs = InCons | Cons [Constr]
+
+emptyC :: Constrs
+emptyC = Cons []
 
 pat2val :: Pat -> Val
 pat2val (PLabel l) = VLabel l

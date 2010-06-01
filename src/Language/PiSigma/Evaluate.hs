@@ -27,33 +27,10 @@ import Control.Monad.Identity
 import Control.Monad.Reader
 
 import Language.PiSigma.Syntax
+import Language.PiSigma.Eval
+
 import qualified Language.PiSigma.Util.String.Internal as Internal
 import {-# SOURCE #-} Language.PiSigma.Constraints
-
--- * Monad used for evaluation
-
-type EvalErr = Internal.String
-
-instance Error EvalErr where
-
-
-newtype Eval a = Eval { unEval :: ReaderT Constrs (StateT EnvEntries (ErrorT EvalErr Identity)) a }
-  deriving ( Monad
-           , MonadError EvalErr
-           , MonadState EnvEntries
-           , MonadReader Constrs)
-
-run :: EnvEntries -> Eval a -> Either EvalErr (a, EnvEntries)
-run e (Eval p) = runIdentity $ runErrorT $ runStateT (runReaderT p emptyC) e 
-
-catchE :: Eval a -> (EvalErr -> Eval a) -> Eval a
-catchE = catchError
-
-getEnv :: Eval EnvEntries
-getEnv = get
-
-setEnv :: EnvEntries -> Eval ()
-setEnv = put
 
 getId :: Loc -> Name -> Scope -> Eval Id
 getId l x s = case lookupScope s x of
@@ -114,7 +91,7 @@ subst (x,(t,s)) u =
 
 evalApp :: Val -> (Clos Term) -> Eval Val
 evalApp (VLam xt) u = eval =<< subst xt u
-evalApp (Ne t)    u = return (Ne (t :.. u))
+evalApp (Ne t)    u = ne (t :.. u)
 evalApp _         _ = throwError "function expected"
 
 lookupId :: Id -> Eval EnvEntry
@@ -125,7 +102,7 @@ evalId i =
     do ei <- lookupId i
        case ei of
          Closure t -> eval t
-         Id j      -> return (Ne (NVar j))
+         Id j      -> ne (NVar j)
 
 evalSplit :: Val
           -> Bind (Bind (Clos Term))
@@ -133,7 +110,7 @@ evalSplit :: Val
 evalSplit (VPair ((l,r),s)) (x,(y,(t,s'))) =
     do ts2 <- subst (x, (t, s')) (l, s)
        eval =<< subst (y, ts2) (r, s)
-evalSplit (Ne n) b = return (Ne (NSplit n b))
+evalSplit (Ne n) b = ne (NSplit n b)
 evalSplit _ _ = throwError "Pair expected"
 
 evalCase :: Val -> Clos [(Label,Term)] -> Eval Val
@@ -141,17 +118,17 @@ evalCase (VLabel l) (lts,s) =
     case lookup l lts of
       Nothing -> throwError "case not matched"
       Just t  -> eval (t,s)
-evalCase (Ne n) lts = return (Ne (NCase n lts))
+evalCase (Ne n) lts = ne (NCase n lts)
 evalCase _ _ = throwError "Label expected"
 
 force :: Val -> Eval Val
 force (VBox (Boxed c)) = eval c
-force (Ne n) = return (Ne (NForce n))
+force (Ne n) = ne (NForce n)
 force _ = throwError "Box expected"
 
 unfold :: Val -> Bind (Clos Term) -> Eval Val
 unfold (VFold c) b = eval =<< subst b c
-unfold (Ne n)    b = return (Ne (NUnfold n b))
+unfold (Ne n)    b = ne (NUnfold n b)
 unfold _         _ = throwError "Fold expected"
 
 eval :: (Clos Term) -> Eval Val

@@ -1,0 +1,53 @@
+:l Bool.pi
+
+BinTree : Type;
+
+BinTree = (l : { leaf node }) 
+          * 
+          case l  of 
+              {   leaf → { unit }
+                | node → Rec [ BinTree * BinTree] };
+
+eqBinTree : BinTree → BinTree → Bool;
+eqBinTree = λ t1 t2 → split t1 with (s1 , c1) 
+             → split t2 with (s2 , c2)
+             → case s1 of
+                    {   leaf → ! case s2 of {  leaf → ['true] | node → ['false] }
+                      | node → ! case s2 of {   leaf →['false]
+                                             |  node →  [unfold c1 as c1' 
+                                                        → split c1' with (c11 , c12) 
+                                                        → unfold c2 as c2'
+                                                        → (split c2' with (c21 , c22)
+                                                        → andb (eqBinTree c11 c12) (eqBinTree c21 c22))]
+                                             }};  
+
+
+
+
+EqBinTree : BinTree -> BinTree -> Type;
+EqBinTree = \t1 t2 -> T(eqBinTree t1 t2);
+
+
+pairb : (a b : Bool) → T a → T b → T (andb a b);
+
+refl :  (t : BinTree) →  EqBinTree t t;
+
+refl =   λ t → split t with (s1 , c1) 
+             → ! case s1 of
+                    {   leaf → ['unit]
+                      | node → [ unfold c1 as c1' ->
+                                 split c1' with (c11,c12) ->
+                                 pairb (eqBinTree c11 c11) (eqBinTree c12 c12) (refl c11) (refl c12)  ] 
+                     }; 
+
+
+
+-- test, erase later
+b : Bool = 'true;
+f0 :  (t : BinTree) →  T ('true);
+f0 = λ t → case b of {true -> 'unit | false → 'unit };
+t : BinTree;
+t = ( 'leaf , 'unit );
+
+h : (a b c d : BinTree) → Type;
+h = λ a b c d → T (andb (eqBinTree a b) (eqBinTree c d)); 

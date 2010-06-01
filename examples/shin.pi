@@ -1,0 +1,16 @@
+:l Nat.pi
+
+id' : Nat → Nat
+    = λ n → split n with (ln,n') → 
+	       case ln of 
+               { z → case n' of { unit → ('z,'unit) }
+	       | s → ! (unfold n' as n'' →
+			   [ ('s,fold (id' n'')) ]) };
+id'' : Nat → Nat
+    = λ n → split n with (ln,n') → 
+	       case ln of 
+               { z → case n' of { unit → ('z,'unit) }
+	       | s → unfold n' as n'' →
+			   ('s,fold (id'' n'')) };
+
+i : Nat;

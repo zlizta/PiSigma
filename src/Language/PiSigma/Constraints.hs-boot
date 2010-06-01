@@ -1,10 +1,8 @@
 module Language.PiSigma.Constraints where
 
 import Language.PiSigma.Syntax
+import Language.PiSigma.Eval
 
-data Constr = Constr Ne Pat
+addC :: Clos Term -> Pat -> Eval a -> Eval a
 
-data Constrs = InCons | Cons [Constr]
-
-emptyC :: Constrs
-
+ne :: Ne -> Eval Val

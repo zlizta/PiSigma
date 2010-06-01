@@ -7,18 +7,11 @@ import Language.PiSigma.Syntax
 import Language.PiSigma.Evaluate
 import Language.PiSigma.Equality
 
-data Constr = Constr Ne Pat
-
-data Constrs = InCons | Cons [Constr]
-
 consistent :: Eval Bool
 consistent = do cs <- ask
                 case cs of
                   InCons -> return False
                   Cons _ -> return True
-
-emptyC :: Constrs
-emptyC = Cons []
 
 addC :: Clos Term -> Pat -> Eval a -> Eval a
 addC t p k = do

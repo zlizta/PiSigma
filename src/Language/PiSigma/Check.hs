@@ -12,10 +12,12 @@ import qualified Data.List as List
 
 import Language.PiSigma.Equality
 import Language.PiSigma.Evaluate
+import Language.PiSigma.Constraints
 import Language.PiSigma.Pretty
 import Language.PiSigma.Syntax
 import qualified Language.PiSigma.Util.String.Internal as Internal
 import qualified Data.Set as Set
+
 
 -- import Debug.Trace
 -- trace "check\n" $
@@ -161,17 +163,7 @@ check gt @ (Case _ t lus,g) c =
                                     , "\n(Case)\n"
                                     ]
                 -- set equivalence would be sufficent
-                else do t' <- eval (t,g)
-                        case t' of
-                          -- if the scrutinee is a variable, we add a constraint
-                          -- while checking each of the branches
-                          (Ne (NVar i)) ->
-                               mapM_ (\ (l,u) ->
-                                      letn' i (label l)
-                                            (check (u,g) c)) lus
-                          -- if the scrutinee is not a variable, we do not add
-                          -- a constraint, but continue
-                          _ -> mapM_ (\ (_,u) -> check (u,g) c) lus
+                else mapM_ (\ (l,u) -> addC (t,g) (PLabel l) (check (u,g) c)) lus
          _ -> expectedButFound (t,g) msg1 enum msg2
                 where
                   msg1 = "enum type" :: Internal.String

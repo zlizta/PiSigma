@@ -1,0 +1,18 @@
+Unit : Type = { tt };
+
+T : Unit → Type
+  = λ x → case x of {
+                tt -> Unit };
+
+f : (x : Unit) → T x
+  = λ x → case x of {
+             tt → 'tt };
+
+tst1 : (g : Unit → Unit) → (x : Unit) → T (g x)
+     = λ g x → f (g x);
+
+tst2 : (g : Unit → Unit) → (x : Unit) → T (g x)
+     = λ g x → case g x of {
+                   tt → 'tt };
+
+

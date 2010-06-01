@@ -1,0 +1,18 @@
+Eq : (a:Type) -> a -> a -> Type;
+Eq = \ a x y -> (P : a -> Type) -> P x -> P y;
+
+refl : (a:Type) -> (x:a) -> Eq a x x;
+refl = \ a x P px -> px;
+
+Stream : Type;
+Stream = (tag : {Cons}) * case tag of {Cons -> Rec [^Stream] };
+
+ticks : Stream;
+ticks = ('Cons, fold [ticks]);
+
+l1 : Eq Stream ticks ('Cons, fold [ticks]);
+l1 = refl Stream ticks;
+
+l2 : (s : Stream) -> (t : Stream) -> (Eq Stream s t)
+                 -> Eq Stream ('Cons, fold [s]) ('Cons, fold [t]);
+l2 = \ s t q P p -> q (\ x -> P ('Cons,fold [x])) p;

@@ -1,6 +1,6 @@
 cabal-version: >= 1.6
 name:          pisigma
-version:       0.2
+version:       0.2.0.1
 license:       BSD3
 license-file:  LICENSE
 data-files:    examples/*.pi
